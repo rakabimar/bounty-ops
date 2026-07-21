@@ -11,19 +11,24 @@
     }
   },
   "scripts": {
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:studio": "prisma studio",
+    "db:generate": "dotenv -e ../../.env -- prisma generate",
+    "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "db:seed": "tsx src/seed.ts",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
     "build": "tsc",
     "lint": "echo \"No database lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "6.19.3"
+    "@prisma/client": "6.19.3",
+    "bcryptjs": "latest",
+    "dotenv": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
+    "dotenv-cli": "latest",
     "prisma": "6.19.3",
+    "tsx": "latest",
     "typescript": "latest"
   }
 }

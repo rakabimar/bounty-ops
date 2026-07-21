@@ -3,11 +3,12 @@ services:
     image: postgres:16
     container_name: bountyops-postgres
     environment:
-      POSTGRES_DB: bountyops
-      POSTGRES_USER: bountyops
-      POSTGRES_PASSWORD: bountyops
+      POSTGRES_DB: ${POSTGRES_DB:-bountyops}
+      POSTGRES_USER: ${POSTGRES_USER:-bountyops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-bountyops}
+      PGDATA: /var/lib/postgresql/data/pgdata
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
       - ../data/postgres:/var/lib/postgresql/data
 
@@ -15,6 +16,6 @@ services:
     image: redis:7-alpine
     container_name: bountyops-redis
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - ../data/redis:/data

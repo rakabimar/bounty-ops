@@ -18,6 +18,11 @@ data/*
 !data/artifacts/
 !data/logs/
 !data/wordlists/
+data/postgres/*
+data/redis/*
+data/artifacts/*
+data/logs/*
+data/wordlists/*
 !data/postgres/.gitkeep
 !data/redis/.gitkeep
 !data/artifacts/.gitkeep

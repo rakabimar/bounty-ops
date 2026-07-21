@@ -30,8 +30,14 @@ corepack enable
 corepack prepare pnpm@9.0.0 --activate
 cp .env.example .env
 pnpm install
-docker compose -f infra/docker-compose.local.yml up -d
+docker compose --env-file .env -f infra/docker-compose.local.yml up -d
 ```
+
+The root `.env` is the single environment file for local development. The web,
+API, worker, Prisma CLI commands, and Prisma client all load it from the
+repository root, and Docker Compose uses it for local service ports and
+PostgreSQL credentials. Workspace-local `.env` copies are not required. Keep
+`DATABASE_URL` aligned with the `POSTGRES_*` values and `POSTGRES_PORT`.
 
 Run each application in its own terminal:
 
@@ -48,7 +54,29 @@ The frontend is available at <http://localhost:5173>. Check the API at <http://l
 ```sh
 pnpm db:generate
 pnpm db:migrate
+pnpm db:seed
 pnpm db:studio
 ```
+
+## Phase 1 verification
+
+Run these commands from the repository root:
+
+```sh
+cp .env.example .env
+pnpm install
+docker compose --env-file .env -f infra/docker-compose.local.yml up -d
+pnpm --filter @bountyops/db db:migrate
+pnpm --filter @bountyops/db db:seed
+pnpm dev:api
+curl http://localhost:3000/health
+pnpm dev:worker
+```
+
+The API health response should report `status: "ok"` and `database: "ok"`.
+The worker should print `BountyOps worker started` followed by
+`Redis connection: ok`. The explicit Compose `--env-file .env` flag keeps the
+root `.env` as the single configuration source; `pnpm infra:up` is an equivalent
+shortcut.
 
 Recon tools listed in `configs/tools.yaml` are not installed or executed by this local setup. Full worker job execution, authentication, the complete Prisma schema, and production Docker services will be added later.

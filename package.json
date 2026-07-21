@@ -12,7 +12,11 @@
     "typecheck": "pnpm -r typecheck",
     "db:generate": "pnpm --filter @bountyops/db db:generate",
     "db:migrate": "pnpm --filter @bountyops/db db:migrate",
-    "db:studio": "pnpm --filter @bountyops/db db:studio"
+    "db:seed": "pnpm --filter @bountyops/db db:seed",
+    "db:studio": "pnpm --filter @bountyops/db db:studio",
+    "infra:up": "docker compose --env-file .env -f infra/docker-compose.local.yml up -d",
+    "infra:down": "docker compose --env-file .env -f infra/docker-compose.local.yml down",
+    "infra:config": "docker compose --env-file .env -f infra/docker-compose.local.yml config"
   },
   "devDependencies": {
     "turbo": "^2.5.5"
