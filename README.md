@@ -136,4 +136,36 @@ configured through `/settings` or the root `.env`. Header values and Telegram
 tokens are plaintext for local development only; encryption at rest is planned
 before production use.
 
+## Phase 3 frontend integration
+
+The frontend uses the Phase 2 API for authentication, programs, scopes, rules,
+required headers, settings, Telegram testing, and audit logs. Configure the web
+transport in the root `.env` (Vite loads the centralized root environment):
+
+```env
+VITE_API_BASE_URL=http://localhost:3000
+VITE_API_MODE=http
+```
+
+The same variables are documented in `apps/web/.env.example`. Set
+`VITE_API_MODE=mock` to retain the generated local mock workflows. Recon jobs,
+asset inventory, URLs, endpoints, and scanner detail pages remain mock-backed
+until later phases.
+
+Start the integrated local stack in separate terminals:
+
+```sh
+pnpm infra:up
+pnpm --filter @bountyops/db db:migrate
+pnpm --filter @bountyops/db db:seed
+pnpm dev:api
+pnpm dev:web
+```
+
+Open <http://localhost:5173> and sign in with `ADMIN_EMAIL` and
+`ADMIN_PASSWORD` from the root `.env`. The API JWT is held only in the
+`bountyops_session` httpOnly cookie; the frontend does not store the token or
+password in browser storage. Core pages show API loading/error states, and the
+Audit Logs page is available under System navigation.
+
 Recon tools listed in `configs/tools.yaml` are not installed or executed by this local setup. Full worker job execution, expanded domain models, advanced authentication flows, and production Docker services will be added later.

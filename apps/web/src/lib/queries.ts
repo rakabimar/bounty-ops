@@ -1,5 +1,6 @@
 import { queryOptions } from "@tanstack/react-query";
 import { api } from "./api-client";
+import { ApiError, coreApi } from "./api-client";
 
 export const q = {
   dashboard: (programId?: string) => queryOptions({ queryKey: ["dashboard", programId], queryFn: () => api.dashboard(programId) }),
@@ -33,4 +34,15 @@ export const q = {
   entityRequests: (entityType: string, entityId: string) => queryOptions({ queryKey: ["entity-requests", entityType, entityId], queryFn: () => api.entityRequests(entityType as never, entityId) }),
   scannerFindings: (programId?: string) => queryOptions({ queryKey: ["scanner-findings", programId], queryFn: () => api.scannerFindings(programId) }),
   discoveredEndpoints: (programId?: string) => queryOptions({ queryKey: ["discovered-endpoints", programId], queryFn: () => api.discoveredEndpoints(programId) }),
+};
+
+export const coreQ = {
+  session: () => queryOptions({queryKey:["auth","me"],queryFn:async()=>{try{return await coreApi.me()}catch(error){if(error instanceof ApiError&&error.status===401)return null;throw error}},retry:false,staleTime:30_000}),
+  programs: (filters: Parameters<typeof coreApi.getPrograms>[0] = {}) => queryOptions({queryKey:["core","programs",filters],queryFn:()=>coreApi.getPrograms(filters)}),
+  program: (id:string) => queryOptions({queryKey:["core","program",id],queryFn:()=>coreApi.getProgram(id)}),
+  scopes: (id:string) => queryOptions({queryKey:["core","scopes",id],queryFn:()=>coreApi.getProgramScopes(id)}),
+  rules: (id:string) => queryOptions({queryKey:["core","rules",id],queryFn:()=>coreApi.getProgramRules(id)}),
+  headers: (id:string) => queryOptions({queryKey:["core","headers",id],queryFn:()=>coreApi.getProgramHeaders(id)}),
+  settings: () => queryOptions({queryKey:["core","settings"],queryFn:coreApi.getSettings}),
+  auditLogs: (filters:Parameters<typeof coreApi.getAuditLogs>[0]={}) => queryOptions({queryKey:["core","audit",filters],queryFn:()=>coreApi.getAuditLogs(filters)}),
 };

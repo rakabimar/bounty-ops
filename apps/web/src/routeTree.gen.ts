@@ -14,6 +14,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.index'
 import { Route as AuthenticatedApiEndpointsRouteImport } from './routes/_authenticated.api-endpoints'
 import { Route as AuthenticatedAssetsRouteImport } from './routes/_authenticated.assets'
+import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated.audit-logs'
 import { Route as AuthenticatedJobsRouteImport } from './routes/_authenticated.jobs'
 import { Route as AuthenticatedJsFilesRouteImport } from './routes/_authenticated.js-files'
 import { Route as AuthenticatedLiveHostsRouteImport } from './routes/_authenticated.live-hosts'
@@ -59,6 +60,11 @@ const AuthenticatedApiEndpointsRoute =
 const AuthenticatedAssetsRoute = AuthenticatedAssetsRouteImport.update({
   id: '/assets',
   path: '/assets',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
+  id: '/audit-logs',
+  path: '/audit-logs',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedJobsRoute = AuthenticatedJobsRouteImport.update({
@@ -179,6 +185,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/api-endpoints': typeof AuthenticatedApiEndpointsRoute
   '/assets': typeof AuthenticatedAssetsRouteWithChildren
+  '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/js-files': typeof AuthenticatedJsFilesRoute
   '/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -204,6 +211,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/api-endpoints': typeof AuthenticatedApiEndpointsRoute
+  '/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/js-files': typeof AuthenticatedJsFilesRoute
   '/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -232,6 +240,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/_authenticated/api-endpoints': typeof AuthenticatedApiEndpointsRoute
   '/_authenticated/assets': typeof AuthenticatedAssetsRouteWithChildren
+  '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
   '/_authenticated/jobs': typeof AuthenticatedJobsRoute
   '/_authenticated/js-files': typeof AuthenticatedJsFilesRoute
   '/_authenticated/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -262,6 +271,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/api-endpoints'
     | '/assets'
+    | '/audit-logs'
     | '/jobs'
     | '/js-files'
     | '/live-hosts'
@@ -287,6 +297,7 @@ export interface FileRouteTypes {
   to:
     | '/login'
     | '/api-endpoints'
+    | '/audit-logs'
     | '/jobs'
     | '/js-files'
     | '/live-hosts'
@@ -314,6 +325,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/_authenticated/api-endpoints'
     | '/_authenticated/assets'
+    | '/_authenticated/audit-logs'
     | '/_authenticated/jobs'
     | '/_authenticated/js-files'
     | '/_authenticated/live-hosts'
@@ -378,6 +390,13 @@ declare module '@tanstack/react-router' {
       path: '/assets'
       fullPath: '/assets'
       preLoaderRoute: typeof AuthenticatedAssetsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/audit-logs': {
+      id: '/_authenticated/audit-logs'
+      path: '/audit-logs'
+      fullPath: '/audit-logs'
+      preLoaderRoute: typeof AuthenticatedAuditLogsRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/jobs': {
@@ -583,6 +602,7 @@ const AuthenticatedUrlsRouteWithChildren =
 interface AuthenticatedRouteChildren {
   AuthenticatedApiEndpointsRoute: typeof AuthenticatedApiEndpointsRoute
   AuthenticatedAssetsRoute: typeof AuthenticatedAssetsRouteWithChildren
+  AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
   AuthenticatedJobsRoute: typeof AuthenticatedJobsRoute
   AuthenticatedJsFilesRoute: typeof AuthenticatedJsFilesRoute
   AuthenticatedLiveHostsRoute: typeof AuthenticatedLiveHostsRoute
@@ -604,6 +624,7 @@ interface AuthenticatedRouteChildren {
 const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApiEndpointsRoute: AuthenticatedApiEndpointsRoute,
   AuthenticatedAssetsRoute: AuthenticatedAssetsRouteWithChildren,
+  AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
   AuthenticatedJobsRoute: AuthenticatedJobsRoute,
   AuthenticatedJsFilesRoute: AuthenticatedJsFilesRoute,
   AuthenticatedLiveHostsRoute: AuthenticatedLiveHostsRoute,

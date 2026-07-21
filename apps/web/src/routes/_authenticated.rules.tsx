@@ -1,2 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router"; import { RulesPage } from "@/components/ops-pages"; import { q } from "@/lib/queries";
-export const Route=createFileRoute("/_authenticated/rules")({loader:({context})=>context.queryClient.ensureQueryData(q.dashboard()),component:RulesPage});
+import { createFileRoute } from "@tanstack/react-router";
+import { RulesPage } from "@/components/core-program-pages";
+export const Route=createFileRoute("/_authenticated/rules")({component:RulesPage});

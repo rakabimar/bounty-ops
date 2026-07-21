@@ -1,2 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router"; import { ScopePage } from "@/components/ops-pages"; import { q } from "@/lib/queries";
-export const Route=createFileRoute("/_authenticated/scope")({loader:({context})=>context.queryClient.ensureQueryData(q.scopes()),component:ScopePage});
+import { createFileRoute } from "@tanstack/react-router";
+import { ScopePage } from "@/components/core-program-pages";
+export const Route=createFileRoute("/_authenticated/scope")({component:ScopePage});
