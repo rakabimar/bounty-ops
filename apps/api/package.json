@@ -14,8 +14,12 @@
     "@bountyops/shared": "workspace:*",
     "@fastify/cookie": "latest",
     "@fastify/cors": "latest",
+    "@fastify/jwt": "latest",
+    "bcryptjs": "latest",
     "dotenv": "latest",
-    "fastify": "latest"
+    "fastify": "latest",
+    "fastify-plugin": "latest",
+    "zod": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

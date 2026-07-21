@@ -79,4 +79,61 @@ The worker should print `BountyOps worker started` followed by
 root `.env` as the single configuration source; `pnpm infra:up` is an equivalent
 shortcut.
 
-Recon tools listed in `configs/tools.yaml` are not installed or executed by this local setup. Full worker job execution, authentication, the complete Prisma schema, and production Docker services will be added later.
+## Phase 2 core API
+
+Start the local services, synchronize the database, seed the admin, and run the
+API:
+
+```sh
+pnpm infra:up
+pnpm --filter @bountyops/db db:migrate
+pnpm --filter @bountyops/db db:seed
+pnpm dev:api
+```
+
+Log in with the `ADMIN_EMAIL` and `ADMIN_PASSWORD` from the root `.env`. The
+cookie jar is reused by the protected requests below:
+
+```sh
+curl -c cookies.txt -X POST http://localhost:3000/auth/login \
+  -H "content-type: application/json" \
+  -d '{"email":"admin@example.com","password":"bountyops"}'
+
+curl -b cookies.txt http://localhost:3000/me
+```
+
+Create and list programs:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/programs \
+  -H "content-type: application/json" \
+  -d '{"platform":"hackerone","name":"Acme Corp","handle":"acme","status":"active","huntingStatus":"ongoing"}'
+
+curl -b cookies.txt http://localhost:3000/programs
+```
+
+Use the returned program ID for the remaining examples:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/programs/PROGRAM_ID/scopes \
+  -H "content-type: application/json" \
+  -d '{"asset":"*.example.com","assetType":"wildcard_domain","isInScope":true,"bountyEligible":true}'
+
+curl -b cookies.txt -X PUT http://localhost:3000/programs/PROGRAM_ID/rules \
+  -H "content-type: application/json" \
+  -d '{"automationAllowed":"limited","aggressiveAllowed":false,"rateLimitRps":3,"maxConcurrency":2,"forbiddenActions":["dos"],"authTestingAllowed":false,"dosTestingAllowed":false}'
+
+curl -b cookies.txt -X POST http://localhost:3000/programs/PROGRAM_ID/headers \
+  -H "content-type: application/json" \
+  -d '{"name":"X-Bug-Bounty","value":"researcher-handle","isRequired":true}'
+
+curl -b cookies.txt http://localhost:3000/programs/PROGRAM_ID
+curl -b cookies.txt -X POST http://localhost:3000/notifications/test-telegram
+```
+
+The Telegram test returns a clear `400` error until a bot token and chat ID are
+configured through `/settings` or the root `.env`. Header values and Telegram
+tokens are plaintext for local development only; encryption at rest is planned
+before production use.
+
+Recon tools listed in `configs/tools.yaml` are not installed or executed by this local setup. Full worker job execution, expanded domain models, advanced authentication flows, and production Docker services will be added later.

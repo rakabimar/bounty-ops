@@ -11,23 +11,100 @@ model User {
   id           String   @id @default(cuid())
   email        String   @unique
   passwordHash String
-  role         String
+  role         String   @default("admin")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
 
 model Program {
-  id            String   @id @default(cuid())
+  id            String          @id @default(cuid())
   platform      String
   name          String
   handle        String?
   programUrl    String?
-  status        String
-  huntingStatus String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  status        String          @default("active")
+  huntingStatus String          @default("ongoing")
+  intakeSource  String?
+  rawPolicyText String?
+  policyHash    String?
+  lastSyncedAt  DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  scopes        ProgramScope[]
+  rules         ProgramRules?
+  headers       ProgramHeader[]
+  auditLogs     AuditLog[]
   assets        Asset[]
   jobs          Job[]
+}
+
+model ProgramScope {
+  id              String   @id @default(cuid())
+  programId       String
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  asset           String
+  normalizedAsset String
+  assetType       String
+  isInScope       Boolean
+  bountyEligible  Boolean  @default(true)
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([programId])
+}
+
+model ProgramRules {
+  id                 String   @id @default(cuid())
+  programId          String   @unique
+  program            Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  automationAllowed  String   @default("unknown")
+  aggressiveAllowed  Boolean  @default(false)
+  rateLimitRps       Int?
+  maxConcurrency     Int?
+  forbiddenActions   Json?
+  authTestingAllowed Boolean  @default(false)
+  dosTestingAllowed  Boolean  @default(false)
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model ProgramHeader {
+  id         String   @id @default(cuid())
+  programId  String
+  program    Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name       String
+  value      String
+  isRequired Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([programId])
+}
+
+model AppSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  programId  String?
+  program    Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String?
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([programId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Asset {
