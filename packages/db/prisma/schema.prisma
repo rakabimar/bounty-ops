@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Program {
+  id            String   @id @default(cuid())
+  platform      String
+  name          String
+  handle        String?
+  programUrl    String?
+  status        String
+  huntingStatus String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  assets        Asset[]
+  jobs          Job[]
+}
+
+model Asset {
+  id          String   @id @default(cuid())
+  programId   String
+  value       String
+  type        String
+  status      String
+  scopeStatus String
+  autoScore   Int      @default(0)
+  manualScore Int?
+  finalScore  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+}
+
+model Job {
+  id        String   @id @default(cuid())
+  programId String?
+  type      String
+  status    String
+  config    Json?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+
+  @@index([programId])
+}

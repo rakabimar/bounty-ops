@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { NotesPage } from "@/components/triage-settings-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/notes")({loader:({context})=>context.queryClient.ensureQueryData(q.notes()),component:NotesPage});

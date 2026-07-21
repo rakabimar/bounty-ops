@@ -1,0 +1,7 @@
+api:
+  - Check BOLA / IDOR
+  - Test Mass Assignment
+
+graphql:
+  - Check Introspection
+  - Check Query Authorization

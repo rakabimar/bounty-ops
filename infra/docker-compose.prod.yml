@@ -1,0 +1,5 @@
+# Production infrastructure placeholder.
+# A later production compose setup will include postgres, redis, api, worker,
+# frontend, and an optional reverse proxy with production-ready secrets,
+# health checks, persistence, and deployment settings.
+services: {}

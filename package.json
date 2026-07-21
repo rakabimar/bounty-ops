@@ -1,0 +1,20 @@
+{
+  "name": "bountyops",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "dev:web": "pnpm --filter @bountyops/web dev",
+    "dev:api": "pnpm --filter @bountyops/api dev",
+    "dev:worker": "pnpm --filter @bountyops/worker dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck",
+    "db:generate": "pnpm --filter @bountyops/db db:generate",
+    "db:migrate": "pnpm --filter @bountyops/db db:migrate",
+    "db:studio": "pnpm --filter @bountyops/db db:studio"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5"
+  }
+}

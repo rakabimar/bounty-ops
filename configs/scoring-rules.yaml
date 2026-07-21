@@ -1,0 +1,16 @@
+rules:
+  - name: swagger_openapi
+    score: 10
+    reason_tag: swagger_detected
+  - name: graphql
+    score: 10
+    reason_tag: graphql_detected
+  - name: staging_dev
+    score: 8
+    reason_tag: staging_keyword
+  - name: login
+    score: 6
+    reason_tag: login_detected
+  - name: admin_dashboard
+    score: 8
+    reason_tag: admin_detected

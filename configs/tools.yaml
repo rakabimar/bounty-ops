@@ -1,0 +1,14 @@
+tools:
+  - subfinder
+  - dnsx
+  - httpx
+  - naabu
+  - katana
+  - nuclei
+  - amass
+  - assetfinder
+  - gau
+  - waybackurls
+  - ffuf
+  - trufflehog
+  - gitleaks

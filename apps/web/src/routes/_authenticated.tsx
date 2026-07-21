@@ -1,0 +1,2 @@
+import { createFileRoute,Outlet,redirect } from "@tanstack/react-router"; import { AppShell } from "@/components/app-shell"; import { authStore } from "@/lib/api-client";
+export const Route=createFileRoute("/_authenticated")({ssr:false,beforeLoad:({location})=>{if(!authStore.isAuthenticated())throw redirect({to:"/login",search:{redirect:location.href}})},component:()=> <AppShell><Outlet/></AppShell>});

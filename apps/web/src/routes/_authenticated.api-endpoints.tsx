@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { ApiEndpointsPage } from "@/components/inventory-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/api-endpoints")({loader:({context})=>context.queryClient.ensureQueryData(q.endpoints()),component:ApiEndpointsPage});

@@ -1,0 +1,9 @@
+import type { ReactNode } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+
+export function PageHeader({eyebrow="OPERATIONS",title,description,actions}:{eyebrow?:string;title:string;description:string;actions?:ReactNode}){return <header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-4"><div className="min-w-0"><p className="font-mono text-[10px] font-semibold tracking-[.22em] text-primary">{eyebrow}</p><h1 className="mt-1 truncate font-display text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1><p className="mt-1 max-w-3xl text-sm text-muted-foreground">{description}</p></div><div className="shrink-0">{actions}</div></header>}
+export function MetricCard({label,value,delta,icon}:{label:string;value:string|number;delta:string;icon:ReactNode}){return <Card className="group overflow-hidden"><CardContent className="p-4"><div className="flex items-start justify-between"><div><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 font-display text-2xl font-semibold tabular-nums">{value}</p></div><div className="rounded-md border bg-secondary p-2 text-primary">{icon}</div></div><p className="mt-3 font-mono text-[10px] text-muted-foreground">{delta}</p></CardContent></Card>}
+export function SearchBox({value,onChange,placeholder="Filter records…"}:{value:string;onChange:(v:string)=>void;placeholder?:string}){return <div className="relative w-full sm:max-w-xs"><Search className="absolute left-3 top-2.5 size-4 text-muted-foreground"/><Input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} className="pl-9"/></div>}
+export function Empty({text="No records match the current filters."}:{text?:string}){return <div className="py-14 text-center text-sm text-muted-foreground">{text}</div>}

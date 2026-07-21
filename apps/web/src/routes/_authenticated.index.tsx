@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { OverviewPage } from "@/components/ops-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/")({loader:async({context})=>{await Promise.all([context.queryClient.ensureQueryData(q.dashboard()),context.queryClient.ensureQueryData(q.programs())])},component:OverviewPage});

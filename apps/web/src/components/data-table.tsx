@@ -1,0 +1,5 @@
+import type { ReactNode } from "react";
+import { Table,TableBody,TableCell,TableHead,TableHeader,TableRow } from "@/components/ui/table";
+
+export type Column<T>={key:string;label:string;render:(row:T)=>ReactNode;className?:string};
+export function DataTable<T extends {id:string}>({rows,columns,onRow}:{rows:T[];columns:Column<T>[];onRow?:(row:T)=>void}){return <div className="overflow-hidden rounded-lg border bg-card"><Table><TableHeader><TableRow className="bg-muted/40 hover:bg-muted/40">{columns.map(c=><TableHead key={c.key} className={c.className}>{c.label}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map(row=><TableRow key={row.id} onClick={()=>onRow?.(row)} className={onRow?"cursor-pointer":""}>{columns.map(c=><TableCell key={c.key} className={c.className}>{c.render(row)}</TableCell>)}</TableRow>)}</TableBody></Table></div>}

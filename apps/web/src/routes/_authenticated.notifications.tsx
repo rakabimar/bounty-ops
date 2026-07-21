@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { NotificationsPage } from "@/components/triage-settings-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/notifications")({loader:({context})=>context.queryClient.ensureQueryData(q.notifications()),component:NotificationsPage});

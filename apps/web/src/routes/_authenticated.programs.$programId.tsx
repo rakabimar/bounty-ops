@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { ProgramDetailPage } from "@/components/ops-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/programs/$programId")({loader:({context,params})=>context.queryClient.ensureQueryData(q.program(params.programId)),component:()=>{const {programId}=Route.useParams();return <ProgramDetailPage id={programId}/>}});

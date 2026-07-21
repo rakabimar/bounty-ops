@@ -1,0 +1,2 @@
+import { createFileRoute } from "@tanstack/react-router"; import { ToolsPage } from "@/components/triage-settings-pages"; import { q } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/tools")({loader:({context})=>context.queryClient.ensureQueryData(q.tools()),component:ToolsPage});
