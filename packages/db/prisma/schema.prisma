@@ -17,31 +17,35 @@ model User {
 }
 
 model Program {
-  id               String            @id @default(cuid())
-  platform         String
-  name             String
-  handle           String?
-  programUrl       String?
-  status           String            @default("active")
-  huntingStatus    String            @default("ongoing")
-  intakeSource     String?
-  rawPolicyText    String?
-  policyHash       String?
-  lastSyncedAt     DateTime?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  scopes           ProgramScope[]
-  rules            ProgramRules?
-  headers          ProgramHeader[]
-  auditLogs        AuditLog[]
-  assets           Asset[]
-  dnsRecords       DnsRecord[]
-  httpServices     HttpService[]
-  urls             Url[]
-  apiEndpoints     ApiEndpoint[]
-  scannerFindings  ScannerFinding[]
-  jobs             Job[]
-  scopeGuardChecks ScopeGuardCheck[]
+  id                  String               @id @default(cuid())
+  platform            String
+  name                String
+  handle              String?
+  programUrl          String?
+  status              String               @default("active")
+  huntingStatus       String               @default("ongoing")
+  intakeSource        String?
+  rawPolicyText       String?
+  policyHash          String?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  scopes              ProgramScope[]
+  rules               ProgramRules?
+  headers             ProgramHeader[]
+  auditLogs           AuditLog[]
+  assets              Asset[]
+  dnsRecords          DnsRecord[]
+  httpServices        HttpService[]
+  urls                Url[]
+  apiEndpoints        ApiEndpoint[]
+  scannerFindings     ScannerFinding[]
+  researchNotes       ResearchNote[]
+  manualChecklists    ManualChecklist[]
+  interestingRequests InterestingRequest[]
+  evidenceItems       EvidenceItem[]
+  jobs                Job[]
+  scopeGuardChecks    ScopeGuardCheck[]
 }
 
 model ProgramScope {
@@ -402,6 +406,134 @@ model EntityChange {
   @@index([programId])
   @@index([entityType, entityId])
   @@index([type])
+  @@index([createdAt])
+}
+
+model ResearchNote {
+  id              String   @id @default(cuid())
+  programId       String
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  entityType      String
+  entityId        String
+  title           String?
+  body            String
+  tags            Json?
+  pinned          Boolean  @default(false)
+  createdByUserId String?
+  updatedByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([pinned])
+  @@index([createdAt])
+}
+
+model ManualChecklist {
+  id         String          @id @default(cuid())
+  programId  String
+  program    Program         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  entityType String
+  entityId   String
+  title      String
+  source     String          @default("manual")
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+  items      ChecklistItem[]
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([source])
+}
+
+model ChecklistItem {
+  id                String          @id @default(cuid())
+  checklistId       String
+  checklist         ManualChecklist @relation(fields: [checklistId], references: [id], onDelete: Cascade)
+  title             String
+  description       String?
+  category          String?
+  status            String          @default("todo")
+  priority          String          @default("medium")
+  order             Int             @default(0)
+  source            String          @default("manual")
+  evidenceRef       String?
+  completedAt       DateTime?
+  completedByUserId String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([checklistId])
+  @@index([status])
+  @@index([priority])
+  @@index([source])
+}
+
+model InterestingRequest {
+  id                  String   @id @default(cuid())
+  programId           String
+  program             Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  entityType          String
+  entityId            String
+  method              String?
+  url                 String?
+  requestHeaders      Json?
+  requestBody         String?
+  responseStatus      Int?
+  responseHeaders     Json?
+  responseBodySnippet String?
+  notes               String?
+  tags                Json?
+  source              String   @default("manual")
+  createdByUserId     String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([method])
+  @@index([responseStatus])
+  @@index([createdAt])
+}
+
+model EvidenceItem {
+  id              String   @id @default(cuid())
+  programId       String
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  entityType      String
+  entityId        String
+  title           String
+  evidenceType    String
+  content         String?
+  filePath        String?
+  url             String?
+  notes           String?
+  tags            Json?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([evidenceType])
+  @@index([createdAt])
+}
+
+model EntityStatusTransition {
+  id              String   @id @default(cuid())
+  programId       String
+  entityType      String
+  entityId        String
+  oldStatus       String?
+  newStatus       String
+  reason          String?
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([newStatus])
   @@index([createdAt])
 }
 

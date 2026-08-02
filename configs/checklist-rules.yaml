@@ -1,7 +1,114 @@
-api:
-  - Check BOLA / IDOR
-  - Test Mass Assignment
-
-graphql:
-  - Check Introspection
-  - Check Query Authorization
+version: 1
+rules:
+  - id: api_review
+    name: API review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [api]
+    reasonTags: [api_host]
+    items:
+      - { title: "Check authorization on object-level actions", priority: high, category: api }
+      - { title: "Check role/permission boundaries", priority: high, category: api }
+      - { title: "Check excessive data exposure", priority: medium, category: api }
+      - { title: "Check missing rate limits on sensitive endpoints", priority: medium, category: api }
+  - id: graphql_review
+    name: GraphQL review
+    enabled: true
+    entityTypes: [asset, url, endpoint, scanner_finding]
+    categories: [graphql]
+    reasonTags: [graphql_detected]
+    items:
+      - { title: "Check introspection availability", priority: medium, category: graphql }
+      - { title: "Check authorization on queries and mutations", priority: high, category: graphql }
+      - { title: "Check batching/depth behavior without DoS testing", priority: medium, category: graphql }
+      - { title: "Check sensitive fields exposure", priority: high, category: graphql }
+  - id: swagger_review
+    name: Swagger and OpenAPI review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [swagger_openapi]
+    reasonTags: [swagger_detected]
+    items:
+      - { title: "Review undocumented/internal endpoints", priority: high, category: swagger_openapi }
+      - { title: "Check whether docs expose auth schemes or sensitive examples", priority: medium, category: swagger_openapi }
+      - { title: "Compare documented endpoints with live behavior", priority: medium, category: swagger_openapi }
+  - id: admin_review
+    name: Admin dashboard review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [admin_dashboard]
+    reasonTags: [admin_detected]
+    items:
+      - { title: "Check access control and unauthenticated exposure", priority: high, category: admin_dashboard }
+      - { title: "Check default/error page information leakage", priority: medium, category: admin_dashboard }
+      - { title: "Check role enforcement after login if authorized", priority: high, category: admin_dashboard }
+  - id: auth_review
+    name: Login and authentication review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [login, auth]
+    reasonTags: [login_detected, auth_detected]
+    items:
+      - { title: "Check user enumeration behavior", priority: medium, category: auth }
+      - { title: "Check session/cookie flags", priority: high, category: auth }
+      - { title: "Check password reset or SSO callback behavior if in scope", priority: high, category: auth }
+  - id: upload_review
+    name: Upload review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [upload]
+    reasonTags: [upload_detected]
+    items:
+      - { title: "Check extension/content-type validation", priority: high, category: upload }
+      - { title: "Check storage location and access control", priority: high, category: upload }
+      - { title: "Check executable/script upload behavior only within safe rules", priority: high, category: upload }
+  - id: download_review
+    name: Download and export review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [download_export]
+    reasonTags: [download_export_detected]
+    items:
+      - { title: "Check IDOR on exported resources", priority: high, category: download_export }
+      - { title: "Check predictable file URLs", priority: medium, category: download_export }
+      - { title: "Check sensitive data exposure in CSV/PDF/XLSX", priority: high, category: download_export }
+  - id: billing_review
+    name: Billing and payment review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [billing_payment]
+    reasonTags: [billing_payment_detected]
+    items:
+      - { title: "Check authorization on invoices/subscriptions", priority: high, category: billing_payment }
+      - { title: "Check price/quantity tampering manually and safely", priority: high, category: billing_payment }
+      - { title: "Check exposed payment metadata", priority: medium, category: billing_payment }
+  - id: staging_review
+    name: Staging and development review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [staging_dev]
+    reasonTags: [staging_keyword]
+    items:
+      - { title: "Check whether environment exposes debug credentials or internal docs", priority: high, category: staging_dev }
+      - { title: "Check staging auth boundary", priority: high, category: staging_dev }
+      - { title: "Check robots/sitemap/internal references", priority: medium, category: staging_dev }
+  - id: debug_review
+    name: Debug and error review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [debug_error]
+    reasonTags: [debug_error_detected, server_error]
+    items:
+      - { title: "Check stack traces and verbose errors", priority: high, category: debug_error }
+      - { title: "Check exposed logs/debug endpoints", priority: high, category: debug_error }
+      - { title: "Check environment/config leakage", priority: high, category: debug_error }
+  - id: storage_review
+    name: Storage bucket review
+    enabled: true
+    entityTypes: [asset, url, endpoint]
+    categories: [storage_bucket]
+    reasonTags: [storage_bucket_detected]
+    items:
+      - { title: "Check public listing", priority: high, category: storage_bucket }
+      - { title: "Check object access control", priority: high, category: storage_bucket }
+      - { title: "Check upload/delete permissions only if authorized", priority: high, category: storage_bucket }

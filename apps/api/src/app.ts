@@ -17,6 +17,7 @@ import { scoringRoutes } from "./modules/scoring/scoring.routes.js";
 import { urlsRoutes } from "./modules/urls/urls.routes.js";
 import { endpointsRoutes } from "./modules/endpoints/endpoints.routes.js";
 import { scannerFindingsRoutes } from "./modules/scanner-findings/scanner-findings.routes.js";
+import { workspaceRoutes } from "./modules/workspace/workspace.routes.js";
 import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { prismaPlugin } from "./plugins/prisma.js";
@@ -74,6 +75,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(urlsRoutes);
   await app.register(endpointsRoutes);
   await app.register(scannerFindingsRoutes);
+  await app.register(workspaceRoutes);
 
   return app;
 }

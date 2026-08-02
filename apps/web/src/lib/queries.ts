@@ -67,4 +67,9 @@ export const coreQ = {
   endpointDetail: (id:string) => queryOptions({queryKey:["core","endpoint-detail",id],queryFn:()=>coreApi.getEndpointDetail(id)}),
   scannerFindings: (filters:Parameters<typeof coreApi.getScannerFindings>[0]={}) => queryOptions({queryKey:["core","scanner-findings",filters],queryFn:()=>coreApi.getScannerFindings(filters)}),
   scannerFindingDetail: (id:string) => queryOptions({queryKey:["core","scanner-finding-detail",id],queryFn:()=>coreApi.getScannerFindingDetail(id)}),
+  workspaceSummary: (entityType:Parameters<typeof coreApi.getWorkspaceSummary>[0],id:string) => queryOptions({queryKey:["core","workspace",entityType,id,"summary"],queryFn:()=>coreApi.getWorkspaceSummary(entityType,id)}),
+  workspaceNotes: (entityType:Parameters<typeof coreApi.getWorkspaceNotes>[0],id:string) => queryOptions({queryKey:["core","workspace",entityType,id,"notes"],queryFn:()=>coreApi.getWorkspaceNotes(entityType,id)}),
+  workspaceChecklists: (entityType:Parameters<typeof coreApi.getWorkspaceChecklists>[0],id:string) => queryOptions({queryKey:["core","workspace",entityType,id,"checklists"],queryFn:()=>coreApi.getWorkspaceChecklists(entityType,id)}),
+  workspaceRequests: (entityType:Parameters<typeof coreApi.getInterestingRequests>[0],id:string) => queryOptions({queryKey:["core","workspace",entityType,id,"requests"],queryFn:()=>coreApi.getInterestingRequests(entityType,id)}),
+  workspaceEvidence: (entityType:Parameters<typeof coreApi.getEvidenceItems>[0],id:string) => queryOptions({queryKey:["core","workspace",entityType,id,"evidence"],queryFn:()=>coreApi.getEvidenceItems(entityType,id)}),
 };

@@ -132,3 +132,11 @@ export const ENDPOINT_PARAMETER_LOCATIONS = ["query", "body", "path", "header", 
 export const SCANNER_FINDING_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
 export const SCANNER_FINDING_STATUSES = ["new", "reviewed", "interesting", "false_positive", "potential_bug", "ignored"] as const;
 export const SCANNER_TOOLS = ["nuclei", "custom", "manual"] as const;
+
+export const WORKSPACE_ENTITY_TYPES = [
+  "asset", "url", "endpoint", "scanner_finding", "http_service", "dns_record", "job",
+] as const;
+export const CHECKLIST_ITEM_STATUSES = ["todo", "in_progress", "done", "skipped", "not_applicable"] as const;
+export const CHECKLIST_PRIORITIES = ["low", "medium", "high"] as const;
+export const CHECKLIST_SOURCES = ["manual", "auto", "template"] as const;
+export const EVIDENCE_TYPES = ["text", "request_response", "screenshot_reference", "file_reference", "command_output", "observation"] as const;

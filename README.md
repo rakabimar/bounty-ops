@@ -399,3 +399,56 @@ pnpm smoke:phase8
 The smoke test uses controlled database fixtures and Fastify request injection.
 Although the fixture uses documentation-domain names, it performs no DNS,
 HTTP, scanner, or other public-target recon and removes its temporary data.
+
+## Phase 9 notes, checklist, and evidence workspace
+
+Phase 9 adds a manual research workspace to assets, URLs, endpoints, scanner
+findings, HTTP services, DNS records, and program-linked jobs. The four primary
+detail pages expose real notes, generated and custom checklist items,
+interesting request records, text/path/reference evidence, summary counts, and
+tracked status transitions in HTTP mode. Mock mode remains available.
+
+Checklist suggestions come from editable
+[`configs/checklist-rules.yaml`](configs/checklist-rules.yaml). Rules match an
+entity's categories and reason tags, and generation is idempotent: existing
+automatic items are not duplicated and manual items are preserved. Interesting
+requests capture compact request/response observations for later review.
+Evidence records hold text, file paths, URLs, or references only; large binary
+attachments are not stored in PostgreSQL. Audit entries contain identifiers and
+titles, not evidence or request/response body contents.
+
+Status changes create both `EntityStatusTransition` history and an
+`EntityChange`. The UI and API use `potential_bug` / “Potential Bug”; a scanner
+finding is not treated as a confirmed vulnerability. This workspace supports
+manual research and does not create reports, execute exploits, or add recon
+tools.
+
+Examples after login:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/workspace/asset/ASSET_ID/notes \
+  -H "content-type: application/json" \
+  -d '{"title":"Auth observation","body":"Observed the login flow.","tags":["auth"]}'
+curl -b cookies.txt -X POST http://localhost:3000/workspace/url/URL_ID/checklists/generate
+curl -b cookies.txt -X PATCH http://localhost:3000/workspace/checklist-items/ITEM_ID \
+  -H "content-type: application/json" -d '{"status":"done","evidenceRef":"evidence-1"}'
+curl -b cookies.txt -X POST http://localhost:3000/workspace/endpoint/ENDPOINT_ID/interesting-requests \
+  -H "content-type: application/json" \
+  -d '{"method":"POST","url":"https://api.example.com/graphql","responseStatus":200,"notes":"Manual comparison candidate"}'
+curl -b cookies.txt -X POST http://localhost:3000/workspace/scanner_finding/FINDING_ID/evidence \
+  -H "content-type: application/json" \
+  -d '{"title":"Response evidence","evidenceType":"request_response","content":"Redacted response excerpt"}'
+curl -b cookies.txt -X PATCH http://localhost:3000/workspace/scanner_finding/FINDING_ID/status \
+  -H "content-type: application/json" -d '{"status":"potential_bug","reason":"Manual evidence warrants review"}'
+curl -b cookies.txt http://localhost:3000/workspace/asset/ASSET_ID/summary
+```
+
+Run the no-network verification with:
+
+```sh
+pnpm smoke:phase9
+```
+
+The smoke test uses Fastify injection and controlled database fixtures, verifies
+all four primary workspace entity types, confirms audit redaction, and performs
+no DNS, HTTP, scanner, or public-target recon.

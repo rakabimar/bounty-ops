@@ -20,7 +20,8 @@
     "smoke:phase5": "pnpm --filter @bountyops/api smoke:phase5",
     "smoke:phase6": "pnpm --filter @bountyops/api smoke:phase6",
     "smoke:phase7": "pnpm --filter @bountyops/api smoke:phase7",
-    "smoke:phase8": "pnpm --filter @bountyops/api smoke:phase8"
+    "smoke:phase8": "pnpm --filter @bountyops/api smoke:phase8",
+    "smoke:phase9": "pnpm --filter @bountyops/api smoke:phase9"
   },
   "devDependencies": {
     "turbo": "^2.5.5"

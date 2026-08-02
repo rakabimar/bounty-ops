@@ -70,7 +70,19 @@ export async function assetsRoutes(app: FastifyInstance): Promise<void> {
       },
       orderBy: [{ finalScore: "desc" }, { lastSeenAt: "desc" }], take: query.limit,
     });
-    return assets.map(withPriority);
+    const ids = assets.map((asset) => asset.id);
+    const [notes, evidence, requests, checklists] = await Promise.all([
+      app.prisma.researchNote.groupBy({ by: ["entityId"], where: { entityType: "asset", entityId: { in: ids } }, _count: { _all: true } }),
+      app.prisma.evidenceItem.groupBy({ by: ["entityId"], where: { entityType: "asset", entityId: { in: ids } }, _count: { _all: true } }),
+      app.prisma.interestingRequest.groupBy({ by: ["entityId"], where: { entityType: "asset", entityId: { in: ids } }, _count: { _all: true } }),
+      app.prisma.manualChecklist.findMany({ where: { entityType: "asset", entityId: { in: ids } }, select: { entityId: true, items: { select: { status: true } } } }),
+    ]);
+    const grouped = (rows: Array<{ entityId: string; _count: { _all: number } }>) => new Map(rows.map((row) => [row.entityId, row._count._all]));
+    const noteCounts = grouped(notes); const evidenceCounts = grouped(evidence); const requestCounts = grouped(requests);
+    return assets.map((asset) => {
+      const items = checklists.filter((checklist) => checklist.entityId === asset.id).flatMap((checklist) => checklist.items);
+      return { ...withPriority(asset), workspaceSummary: { notesCount: noteCounts.get(asset.id) ?? 0, checklistDone: items.filter((item) => item.status === "done").length, checklistTotal: items.length, evidenceCount: evidenceCounts.get(asset.id) ?? 0, interestingRequestsCount: requestCounts.get(asset.id) ?? 0 } };
+    });
   });
 
   app.get("/assets/:assetId", { preHandler: app.requireAuth }, async (request) => {

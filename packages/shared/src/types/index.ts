@@ -233,7 +233,7 @@ export interface JobQueueHealthDto {
 export type ScopeStatus = "in_scope" | "out_of_scope" | "unknown";
 export type AssetType = "root_domain" | "subdomain" | "host" | "ip" | "service";
 export type ToolName = "subfinder" | "dnsx" | "httpx";
-export type EntityType = "asset" | "http_service" | "url" | "endpoint" | "scanner_finding" | "js_file" | "secret_candidate" | "job";
+export type EntityType = "asset" | "http_service" | "dns_record" | "url" | "endpoint" | "scanner_finding" | "js_file" | "secret_candidate" | "job";
 export type Category = "login" | "auth" | "admin_dashboard" | "api" | "swagger_openapi" | "graphql" | "upload" | "download_export" | "billing_payment" | "team_invite_role" | "staging_dev" | "debug_error" | "storage_bucket" | "static_cdn" | "parked" | "unknown";
 export type ReasonTag = "new_asset" | "live_host" | "api_host" | "graphql_detected" | "swagger_detected" | "admin_detected" | "login_detected" | "auth_detected" | "upload_detected" | "download_export_detected" | "billing_payment_detected" | "staging_keyword" | "debug_error_detected" | "storage_bucket_detected" | "interesting_403" | "server_error" | "unusual_port" | "sensitive_path" | "dev_tech_detected" | "duplicate_fingerprint" | "parked_detected" | "static_cdn";
 
@@ -382,6 +382,7 @@ export interface AssetDto {
   lastChangedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  workspaceSummary?: { notesCount: number; checklistDone: number; checklistTotal: number; evidenceCount: number; interestingRequestsCount: number };
 }
 
 export interface DnsRecordDto {
@@ -507,6 +508,64 @@ export interface AssetDetailDto { asset: AssetDto; dnsRecords: DnsRecordDto[]; h
 export interface UrlFilters { programId?: string; assetId?: string; host?: string; statusCode?: number; category?: Category; reasonTag?: ReasonTag; minScore?: number; search?: string; limit?: number; }
 export interface EndpointFilters { programId?: string; assetId?: string; urlId?: string; method?: EndpointMethod; statusCode?: number; category?: Category; authRequired?: AuthRequired; minScore?: number; search?: string; limit?: number; }
 export interface ScannerFindingFilters { programId?: string; assetId?: string; urlId?: string; endpointId?: string; severity?: ScannerFindingSeverity; status?: ScannerFindingStatus; tool?: ScannerTool; search?: string; limit?: number; }
+
+export type WorkspaceEntityType = "asset" | "url" | "endpoint" | "scanner_finding" | "http_service" | "dns_record" | "job";
+export type ChecklistItemStatus = "todo" | "in_progress" | "done" | "skipped" | "not_applicable";
+export type ChecklistPriority = "low" | "medium" | "high";
+export type ChecklistSource = "manual" | "auto" | "template";
+export type EvidenceType = "text" | "request_response" | "screenshot_reference" | "file_reference" | "command_output" | "observation";
+
+export interface ResearchNoteDto {
+  id: string; programId: string; entityType: WorkspaceEntityType; entityId: string; title: string | null;
+  body: string; tags: string[] | null; pinned: boolean; createdByUserId: string | null;
+  updatedByUserId: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface ChecklistItemDto {
+  id: string; checklistId: string; title: string; description: string | null; category: string | null;
+  status: ChecklistItemStatus; priority: ChecklistPriority; order: number; source: ChecklistSource;
+  evidenceRef: string | null; completedAt: string | null; completedByUserId: string | null;
+  createdAt: string; updatedAt: string;
+}
+
+export interface ManualChecklistDto {
+  id: string; programId: string; entityType: WorkspaceEntityType; entityId: string; title: string;
+  source: ChecklistSource; createdAt: string; updatedAt: string; items: ChecklistItemDto[];
+}
+
+export interface InterestingRequestDto {
+  id: string; programId: string; entityType: WorkspaceEntityType; entityId: string; method: string | null;
+  url: string | null; requestHeaders: Record<string, unknown> | null; requestBody: string | null;
+  responseStatus: number | null; responseHeaders: Record<string, unknown> | null; responseBodySnippet: string | null;
+  notes: string | null; tags: string[] | null; source: string; createdByUserId: string | null;
+  createdAt: string; updatedAt: string;
+}
+
+export interface EvidenceItemDto {
+  id: string; programId: string; entityType: WorkspaceEntityType; entityId: string; title: string;
+  evidenceType: EvidenceType; content: string | null; filePath: string | null; url: string | null;
+  notes: string | null; tags: string[] | null; createdByUserId: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface EntityStatusTransitionDto {
+  id: string; programId: string; entityType: WorkspaceEntityType; entityId: string; oldStatus: string | null;
+  newStatus: string; reason: string | null; createdByUserId: string | null; createdAt: string;
+}
+
+export interface EntityWorkspaceSummaryDto {
+  entityType: WorkspaceEntityType; entityId: string; programId: string; status: string | null;
+  notesCount: number; checklist: { total: number; done: number; todo: number; inProgress: number; skipped: number };
+  evidenceCount: number; interestingRequestsCount: number; latestStatusTransition: EntityStatusTransitionDto | null;
+}
+
+export interface CreateResearchNoteRequest { title?: string | null; body: string; tags?: string[]; pinned?: boolean }
+export interface UpdateResearchNoteRequest { title?: string | null; body?: string; tags?: string[]; pinned?: boolean }
+export interface CreateChecklistRequest { title: string; source?: ChecklistSource }
+export interface CreateChecklistItemRequest { title: string; description?: string | null; category?: string | null; priority?: ChecklistPriority; order?: number; source?: ChecklistSource; evidenceRef?: string | null }
+export interface UpdateChecklistItemRequest extends Partial<CreateChecklistItemRequest> { status?: ChecklistItemStatus }
+export interface CreateInterestingRequestRequest { method?: string | null; url?: string | null; requestHeaders?: Record<string, unknown> | null; requestBody?: string | null; responseStatus?: number | null; responseHeaders?: Record<string, unknown> | null; responseBodySnippet?: string | null; notes?: string | null; tags?: string[]; source?: string }
+export interface CreateEvidenceItemRequest { title: string; evidenceType: EvidenceType; content?: string | null; filePath?: string | null; url?: string | null; notes?: string | null; tags?: string[] }
+export interface UpdateEntityStatusRequest { status: string; reason?: string | null }
 
 export interface ApiResponse<T> {
   data: T;
