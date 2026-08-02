@@ -45,4 +45,5 @@ export const coreQ = {
   headers: (id:string) => queryOptions({queryKey:["core","headers",id],queryFn:()=>coreApi.getProgramHeaders(id)}),
   settings: () => queryOptions({queryKey:["core","settings"],queryFn:coreApi.getSettings}),
   auditLogs: (filters:Parameters<typeof coreApi.getAuditLogs>[0]={}) => queryOptions({queryKey:["core","audit",filters],queryFn:()=>coreApi.getAuditLogs(filters)}),
+  scopeGuardSummary: (programId:string) => queryOptions({queryKey:["core","scope-guard","summary",programId],queryFn:()=>coreApi.getScopeGuardSummary(programId)}),
 };

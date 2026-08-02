@@ -17,25 +17,26 @@ model User {
 }
 
 model Program {
-  id            String          @id @default(cuid())
-  platform      String
-  name          String
-  handle        String?
-  programUrl    String?
-  status        String          @default("active")
-  huntingStatus String          @default("ongoing")
-  intakeSource  String?
-  rawPolicyText String?
-  policyHash    String?
-  lastSyncedAt  DateTime?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  scopes        ProgramScope[]
-  rules         ProgramRules?
-  headers       ProgramHeader[]
-  auditLogs     AuditLog[]
-  assets        Asset[]
-  jobs          Job[]
+  id               String            @id @default(cuid())
+  platform         String
+  name             String
+  handle           String?
+  programUrl       String?
+  status           String            @default("active")
+  huntingStatus    String            @default("ongoing")
+  intakeSource     String?
+  rawPolicyText    String?
+  policyHash       String?
+  lastSyncedAt     DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  scopes           ProgramScope[]
+  rules            ProgramRules?
+  headers          ProgramHeader[]
+  auditLogs        AuditLog[]
+  assets           Asset[]
+  jobs             Job[]
+  scopeGuardChecks ScopeGuardCheck[]
 }
 
 model ProgramScope {
@@ -136,4 +137,29 @@ model Job {
   program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
 
   @@index([programId])
+}
+
+model ScopeGuardCheck {
+  id                       String   @id @default(cuid())
+  programId                String?
+  program                  Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  userId                   String?
+  target                   String
+  normalizedTarget         Json?
+  jobType                  String
+  stage                    String
+  decision                 String
+  allowed                  Boolean
+  reasons                  Json
+  matchedInScopeScopeId    String?
+  matchedOutOfScopeScopeId String?
+  effectiveRateLimitRps    Int?
+  effectiveMaxConcurrency  Int?
+  requiredHeaders          Json?
+  createdAt                DateTime @default(now())
+
+  @@index([programId])
+  @@index([decision])
+  @@index([jobType])
+  @@index([createdAt])
 }

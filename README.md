@@ -169,3 +169,59 @@ password in browser storage. Core pages show API loading/error states, and the
 Audit Logs page is available under System navigation.
 
 Recon tools listed in `configs/tools.yaml` are not installed or executed by this local setup. Full worker job execution, expanded domain models, advanced authentication flows, and production Docker services will be added later.
+
+## Phase 4 Scope Guard
+
+Scope Guard is the fail-closed policy decision layer that future recon jobs must
+call before doing work. It returns `allowed`, `limited`, or `blocked` together
+with normalized target data, matching scope IDs, required headers, effective
+rate/concurrency limits, stage permissions, and human-readable reasons. Every
+preflight is persisted and added to the audit log. Phase 4 does not execute a
+tool or enqueue a worker job.
+
+Matching is conservative:
+
+- `wildcard_domain` matches descendants such as `api.example.com`, but not the
+  apex `example.com` or lookalikes such as `evil-example.com`.
+- `domain` and `subdomain` are exact-host matches.
+- `url` is scheme/origin sensitive and matches only the configured path prefix.
+- `api` follows URL rules for URL-like values and exact-host rules otherwise.
+- CIDR matching uses `ipaddr.js`; invalid CIDR rules never allow a target.
+- Any matching out-of-scope rule wins over an in-scope match.
+
+After logging in and saving the cookie as shown in Phase 2, request a summary:
+
+```sh
+curl -b cookies.txt \
+  http://localhost:3000/programs/PROGRAM_ID/scope-guard/summary
+```
+
+Run an ordinary preflight and an out-of-scope preflight:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/scope-guard/preflight \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","target":"api.example.com","jobType":"http_probe"}'
+
+curl -b cookies.txt -X POST http://localhost:3000/scope-guard/preflight \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","target":"admin.example.com","jobType":"http_probe"}'
+```
+
+Manual-approval jobs remain blocked until the approval flag is explicit:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/scope-guard/preflight \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","target":"api.example.com","jobType":"nmap_verification","manualApproved":true}'
+```
+
+Bulk preflight accepts up to 100 targets and applies the same policy and audit
+behavior to each result:
+
+```sh
+curl -b cookies.txt -X POST \
+  http://localhost:3000/programs/PROGRAM_ID/scope-guard/bulk-preflight \
+  -H "content-type: application/json" \
+  -d '{"targets":["api.example.com","other.com"],"jobType":"http_probe"}'
+```

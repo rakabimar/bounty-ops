@@ -19,6 +19,7 @@
     "dotenv": "latest",
     "fastify": "latest",
     "fastify-plugin": "latest",
+    "ipaddr.js": "latest",
     "zod": "latest"
   },
   "devDependencies": {

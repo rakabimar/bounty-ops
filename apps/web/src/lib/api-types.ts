@@ -9,6 +9,9 @@ import type {
   ProgramScopeDto,
   ProgramStatus,
   ScopeAssetType,
+  ScopeGuardPreflightInput,
+  ScopeGuardPreflightResult,
+  ScopeGuardSummary,
 } from "@bountyops/shared";
 
 export type {
@@ -22,7 +25,17 @@ export type {
   ProgramScopeDto,
   ProgramStatus,
   ScopeAssetType,
+  ScopeGuardPreflightInput,
+  ScopeGuardPreflightResult,
+  ScopeGuardSummary,
 };
+
+export interface BulkScopeGuardPreflightInput {
+  targets: string[];
+  jobType: ScopeGuardPreflightInput["jobType"];
+  stage?: ScopeGuardPreflightInput["stage"];
+  manualApproved?: boolean;
+}
 
 export interface ProgramDetailDto extends ProgramDto {
   scopes: ProgramScopeDto[];

@@ -33,6 +33,101 @@ export type ScopeAssetType =
 
 export type AutomationAllowed = "yes" | "no" | "limited" | "unknown";
 
+export type ReconStage =
+  | "passive"
+  | "active_light"
+  | "active_medium"
+  | "active_deep"
+  | "manual_approval"
+  | "blocked";
+
+export type ReconJobType =
+  | "program_sync"
+  | "subdomain_enum"
+  | "dns_resolve"
+  | "http_probe"
+  | "tls_enrichment"
+  | "port_discovery"
+  | "url_archive"
+  | "crawl"
+  | "crawl_headless"
+  | "nuclei_safe"
+  | "nuclei_advanced"
+  | "ffuf_small"
+  | "ffuf_deep"
+  | "alterx_permutation"
+  | "secret_scan"
+  | "nmap_verification"
+  | "interactsh_oob"
+  | "full_deep_recon";
+
+export type ScopeGuardDecision = "allowed" | "blocked" | "limited";
+
+export interface ScopeGuardNormalizedTarget {
+  input: string;
+  normalized: string;
+  host: string | null;
+  scheme: string | null;
+  port: number | null;
+  path: string | null;
+  type: "url" | "host" | "host_port" | "ipv4" | "cidr" | "wildcard_domain" | "other";
+}
+
+export interface ScopeGuardHeader {
+  name: string;
+  value: string;
+  isRequired: boolean;
+}
+
+export interface ScopeGuardPreflightInput {
+  programId: string;
+  target: string;
+  jobType: ReconJobType;
+  stage?: ReconStage;
+  manualApproved?: boolean;
+}
+
+export interface ScopeGuardPreflightResult {
+  decision: ScopeGuardDecision;
+  allowed: boolean;
+  programId: string;
+  target: string;
+  normalizedTarget: ScopeGuardNormalizedTarget;
+  jobType: ReconJobType;
+  stage: ReconStage;
+  matchedInScope: boolean;
+  matchedInScopeScopeId: string | null;
+  matchedOutOfScope: boolean;
+  matchedOutOfScopeScopeId: string | null;
+  scopeReasons: string[];
+  automationAllowed: AutomationAllowed;
+  manualApprovalRequired: boolean;
+  effectiveRateLimitRps: number;
+  effectiveMaxConcurrency: number;
+  requiredHeaders: ScopeGuardHeader[];
+  effectiveHeaders: ScopeGuardHeader[];
+  allowedStages: ReconStage[];
+  blockedStages: ReconStage[];
+  reasons: string[];
+}
+
+export interface ScopeGuardSummary {
+  programId: string;
+  programStatus: ProgramStatus;
+  huntingStatus: HuntingStatus;
+  automationAllowed: AutomationAllowed;
+  aggressiveAllowed: boolean;
+  rateLimitRps: number;
+  maxConcurrency: number;
+  inScopeCount: number;
+  outOfScopeCount: number;
+  requiredHeadersCount: number;
+  forbiddenActions: string[];
+  defaultAllowedStages: ReconStage[];
+  defaultBlockedStages: ReconStage[];
+  warnings: string[];
+}
+
 export type JobStatus = "queued" | "running" | "success" | "failed" | "cancelled";
 
 export type ScopeStatus = "in_scope" | "out_of_scope" | "unknown";

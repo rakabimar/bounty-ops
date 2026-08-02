@@ -9,6 +9,7 @@ import { programsRoutes } from "./modules/programs/programs.routes.js";
 import { rulesRoutes } from "./modules/rules/rules.routes.js";
 import { scopesRoutes } from "./modules/scopes/scopes.routes.js";
 import { settingsRoutes } from "./modules/settings/settings.routes.js";
+import { scopeGuardRoutes } from "./modules/scope-guard/scope-guard.routes.js";
 import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { prismaPlugin } from "./plugins/prisma.js";
@@ -56,6 +57,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(settingsRoutes);
   await app.register(notificationsRoutes);
   await app.register(auditRoutes);
+  await app.register(scopeGuardRoutes);
 
   return app;
 }
