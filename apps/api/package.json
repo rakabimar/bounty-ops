@@ -6,6 +6,7 @@
     "dev": "tsx watch src/main.ts",
     "build": "tsc",
     "start": "node dist/main.js",
+    "smoke:phase5": "tsx scripts/phase5-smoke.ts",
     "lint": "echo \"No API lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },
@@ -16,10 +17,12 @@
     "@fastify/cors": "latest",
     "@fastify/jwt": "latest",
     "bcryptjs": "latest",
+    "bullmq": "latest",
     "dotenv": "latest",
     "fastify": "latest",
     "fastify-plugin": "latest",
     "ipaddr.js": "latest",
+    "ioredis": "latest",
     "zod": "latest"
   },
   "devDependencies": {

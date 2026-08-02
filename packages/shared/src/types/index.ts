@@ -128,7 +128,107 @@ export interface ScopeGuardSummary {
   warnings: string[];
 }
 
-export type JobStatus = "queued" | "running" | "success" | "failed" | "cancelled";
+export type JobStatus = "queued" | "running" | "success" | "failed" | "cancelled" | "blocked";
+export type JobRunStatus = JobStatus;
+export type ToolRunStatus = "queued" | "running" | "success" | "failed" | "skipped";
+
+export interface JobLogEntry {
+  timestamp: string;
+  level: "info" | "warn" | "error" | "debug";
+  message: string;
+  meta?: Record<string, unknown>;
+}
+
+export interface ReconQueueJobData {
+  jobId: string;
+  jobRunId: string;
+  programId?: string;
+  type: ReconJobType;
+  stage?: ReconStage;
+  target?: string;
+  config?: unknown;
+  manualApproved?: boolean;
+}
+
+export interface CreateJobRequest {
+  programId: string;
+  type: ReconJobType;
+  target?: string;
+  config?: unknown;
+  manualApproved?: boolean;
+}
+
+export interface ToolRunDto {
+  id: string;
+  jobRunId: string;
+  toolName: string;
+  command: string | null;
+  args: unknown;
+  status: ToolRunStatus;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+  stdoutPath: string | null;
+  stderrPath: string | null;
+  parsedCount: number;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobRunDto {
+  id: string;
+  jobId: string;
+  programId: string | null;
+  type: ReconJobType;
+  status: JobRunStatus;
+  startedAt: string | null;
+  finishedAt: string | null;
+  durationMs: number | null;
+  error: string | null;
+  logs: JobLogEntry[] | null;
+  resultSummary: unknown;
+  createdAt: string;
+  updatedAt: string;
+  toolRuns?: ToolRunDto[];
+}
+
+export interface JobDto {
+  id: string;
+  programId: string | null;
+  type: ReconJobType;
+  status: JobStatus;
+  stage: ReconStage | null;
+  target: string | null;
+  config: unknown;
+  requestedByUserId: string | null;
+  manualApproved: boolean;
+  scopeGuardDecision: ScopeGuardPreflightResult | null;
+  error: string | null;
+  createdAt: string;
+  updatedAt: string;
+  runs?: JobRunDto[];
+  latestRun?: JobRunDto | null;
+}
+
+export interface JobLogsDto {
+  jobId: string;
+  jobRunId: string | null;
+  logs: JobLogEntry[];
+}
+
+export interface JobQueueHealthDto {
+  queueName: string;
+  redis: "ok" | "error";
+  counts: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  };
+  timestamp: string;
+}
 
 export type ScopeStatus = "in_scope" | "out_of_scope" | "unknown";
 

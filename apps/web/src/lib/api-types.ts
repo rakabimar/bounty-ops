@@ -12,6 +12,12 @@ import type {
   ScopeGuardPreflightInput,
   ScopeGuardPreflightResult,
   ScopeGuardSummary,
+  CreateJobRequest,
+  JobDto,
+  JobLogsDto,
+  JobQueueHealthDto,
+  JobStatus,
+  ReconJobType,
 } from "@bountyops/shared";
 
 export type {
@@ -28,6 +34,12 @@ export type {
   ScopeGuardPreflightInput,
   ScopeGuardPreflightResult,
   ScopeGuardSummary,
+  CreateJobRequest,
+  JobDto,
+  JobLogsDto,
+  JobQueueHealthDto,
+  JobStatus,
+  ReconJobType,
 };
 
 export interface BulkScopeGuardPreflightInput {
@@ -107,4 +119,16 @@ export interface AuditFilters {
   programId?: string;
   action?: string;
   limit?: number;
+}
+
+export interface JobFilters {
+  programId?: string;
+  status?: JobStatus;
+  type?: ReconJobType;
+  limit?: number;
+}
+
+export interface RetryJobInput {
+  target?: string;
+  manualApproved?: boolean;
 }

@@ -78,3 +78,25 @@ export const MANUAL_APPROVAL_JOB_TYPES = [
 ] as const;
 
 export const DEFAULT_BLOCKED_ACTION_CATEGORIES = ["dos", "bruteforce"] as const;
+
+export const RECON_QUEUE_NAME = "recon-jobs" as const;
+
+export const OPTIONAL_TARGET_JOB_TYPES = [
+  "program_sync",
+  "subdomain_enum",
+  "url_archive",
+  "full_deep_recon",
+] as const;
+
+export const FULL_DEEP_RECON_STAGES = [
+  "program_sync",
+  "subdomain_enum",
+  "dns_resolve",
+  "http_probe",
+  "tls_enrichment",
+  "port_discovery",
+  "url_archive",
+  "crawl",
+  "nuclei_safe",
+  "secret_scan",
+] as const;

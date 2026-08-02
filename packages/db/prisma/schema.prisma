@@ -126,17 +126,70 @@ model Asset {
 }
 
 model Job {
-  id        String   @id @default(cuid())
-  programId String?
-  type      String
-  status    String
-  config    Json?
-  error     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  program   Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  id                 String   @id @default(cuid())
+  programId          String?
+  program            Program? @relation(fields: [programId], references: [id], onDelete: SetNull)
+  type               String
+  status             String   @default("queued")
+  stage              String?
+  target             String?
+  config             Json?
+  requestedByUserId  String?
+  manualApproved     Boolean  @default(false)
+  scopeGuardDecision Json?
+  error              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  runs               JobRun[]
 
   @@index([programId])
+  @@index([status])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model JobRun {
+  id            String    @id @default(cuid())
+  jobId         String
+  job           Job       @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  programId     String?
+  type          String
+  status        String    @default("queued")
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  durationMs    Int?
+  error         String?
+  logs          Json?
+  resultSummary Json?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  toolRuns      ToolRun[]
+
+  @@index([jobId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ToolRun {
+  id          String    @id @default(cuid())
+  jobRunId    String
+  jobRun      JobRun    @relation(fields: [jobRunId], references: [id], onDelete: Cascade)
+  toolName    String
+  command     String?
+  args        Json?
+  status      String    @default("queued")
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  durationMs  Int?
+  stdoutPath  String?
+  stderrPath  String?
+  parsedCount Int       @default(0)
+  error       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([jobRunId])
+  @@index([status])
 }
 
 model ScopeGuardCheck {

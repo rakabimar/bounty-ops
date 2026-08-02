@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
-import { Redis } from "ioredis";
 import { fileURLToPath } from "node:url";
+import { createReconWorker } from "./recon-worker.js";
 
 dotenv.config({
   path: fileURLToPath(new URL("../../../.env", import.meta.url)),
@@ -8,32 +8,27 @@ dotenv.config({
 });
 
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
-const redis = new Redis(redisUrl, {
-  lazyConnect: true,
-  connectTimeout: 5_000,
-  maxRetriesPerRequest: 1,
-  retryStrategy: () => null,
-});
-
-redis.on("error", () => {
-  // Connection failures are handled by the startup check below.
-});
-
-console.log("BountyOps worker started");
 
 try {
-  await redis.connect();
-  const response = await redis.ping();
-
-  if (response !== "PONG") {
-    throw new Error("Unexpected Redis ping response");
-  }
-
+  const runtime = await createReconWorker(redisUrl);
+  console.log("BountyOps worker started");
   console.log("Redis connection: ok");
+  console.log("Recon queue consumer: ready");
+
+  runtime.worker.on("completed", (job) => console.log(`Simulated job completed: ${job.data.jobId}`));
+  runtime.worker.on("failed", (job, error) => console.error(`Simulated job failed: ${job?.data.jobId ?? "unknown"}: ${error.message}`));
+  runtime.worker.on("error", (error) => console.error(`Worker error: ${error.message}`));
+
+  let closing = false;
+  const shutdown = async () => {
+    if (closing) return;
+    closing = true;
+    await runtime.close();
+  };
+  process.once("SIGINT", () => void shutdown());
+  process.once("SIGTERM", () => void shutdown());
 } catch (error) {
   const message = error instanceof Error ? error.message : "Unknown Redis connection error";
   console.error(`Redis connection failed: ${message}`);
   process.exitCode = 1;
-} finally {
-  redis.disconnect();
 }

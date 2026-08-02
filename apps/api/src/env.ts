@@ -24,6 +24,7 @@ function integer(name: string, fallback: number): number {
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   API_PORT: integer("API_PORT", 3000),
+  REDIS_URL: process.env.REDIS_URL?.trim() || "redis://localhost:6379",
   JWT_SECRET: required("JWT_SECRET"),
   AI_ENABLED: process.env.AI_ENABLED ?? "true",
   AI_MONTHLY_LIMIT: integer("AI_MONTHLY_LIMIT", 200),

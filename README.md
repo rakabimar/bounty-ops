@@ -225,3 +225,46 @@ curl -b cookies.txt -X POST \
   -H "content-type: application/json" \
   -d '{"targets":["api.example.com","other.com"],"jobType":"http_probe"}'
 ```
+
+## Phase 5 job queue foundation
+
+Phase 5 connects the authenticated API, Postgres, the `recon-jobs` BullMQ
+queue, and the worker. Every job is evaluated by Scope Guard before enqueue.
+Blocked jobs are retained in Postgres for review but never enter Redis. Allowed
+and limited jobs are consumed by the worker, which writes lifecycle status and
+JSON logs back to Postgres.
+
+All execution in this phase is simulated. The worker does not invoke subfinder,
+httpx, nuclei, ffuf, or any other recon tool.
+
+Start each application in its own terminal:
+
+```sh
+pnpm infra:up
+pnpm dev:api
+pnpm dev:worker
+pnpm dev:web
+```
+
+After logging in and creating an active program with matching in-scope rules,
+create a simulated HTTP probe:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/jobs \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","type":"http_probe","target":"https://api.example.com","config":{},"manualApproved":false}'
+```
+
+Inspect queue health, jobs, a job detail, and its latest run logs:
+
+```sh
+curl -b cookies.txt http://localhost:3000/jobs/queue/health
+curl -b cookies.txt http://localhost:3000/jobs
+curl -b cookies.txt http://localhost:3000/jobs/JOB_ID
+curl -b cookies.txt http://localhost:3000/jobs/JOB_ID/logs
+```
+
+Expected lifecycle statuses are `queued`, `running`, `success`, `failed`,
+`cancelled`, and `blocked`. Manual-approval types require `manualApproved: true`.
+The Recon Jobs page exposes the same simulated queue flow in HTTP mode; the
+existing mock mode remains available.

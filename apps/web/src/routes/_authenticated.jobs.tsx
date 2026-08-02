@@ -1,2 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"; import { JobsPage } from "@/components/inventory-pages"; import { q } from "@/lib/queries";
-export const Route=createFileRoute("/_authenticated/jobs")({loader:({context})=>context.queryClient.ensureQueryData(q.jobs()),component:JobsPage});
+import { createFileRoute } from "@tanstack/react-router";
+import { CoreJobsPage } from "@/components/core-jobs-page";
+import { coreQ } from "@/lib/queries";
+
+export const Route = createFileRoute("/_authenticated/jobs")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(coreQ.jobs()),
+  component: CoreJobsPage,
+});
