@@ -29,6 +29,21 @@ import type {
   ScoringPreviewRequest,
   ScoringPreviewResponse,
   EntityClassificationDto,
+  UrlDto,
+  UrlDetailDto,
+  UrlFilters,
+  ApiEndpointDto,
+  ApiEndpointDetailDto,
+  EndpointFilters,
+  EndpointMethod,
+  EndpointParameterLocation,
+  AuthRequired,
+  ScannerFindingDto,
+  ScannerFindingDetailDto,
+  ScannerFindingFilters,
+  ScannerFindingSeverity,
+  ScannerFindingStatus,
+  ScannerTool,
 } from "@bountyops/shared";
 
 export type {
@@ -61,6 +76,21 @@ export type {
   DnsRecordDto,
   HttpServiceDto,
   LiveHostFilters,
+  UrlDto,
+  UrlDetailDto,
+  UrlFilters,
+  ApiEndpointDto,
+  ApiEndpointDetailDto,
+  EndpointFilters,
+  EndpointMethod,
+  EndpointParameterLocation,
+  AuthRequired,
+  ScannerFindingDto,
+  ScannerFindingDetailDto,
+  ScannerFindingFilters,
+  ScannerFindingSeverity,
+  ScannerFindingStatus,
+  ScannerTool,
 };
 
 export interface BulkScopeGuardPreflightInput {
@@ -175,7 +205,15 @@ export interface AssetDetailResponse {
   changes: EntityChangeDto[];
   scoreEvents?: ScoreEventDto[];
   classifications?: EntityClassificationDto[];
+  urlsCount: number;
+  endpointsCount: number;
+  scannerFindingsCount: number;
+  scoreExplanation?: ScoreExplanationDto;
 }
+
+export interface CreateUrlInput { programId: string; assetId?: string; httpServiceId?: string; url: string; sourceTools?: string[]; title?: string; statusCode?: number; contentType?: string; technologies?: string[]; }
+export interface CreateEndpointInput { programId: string; assetId?: string; urlId?: string; method: EndpointMethod; path: string; fullUrl: string; statusCode?: number; contentType?: string; authRequired?: AuthRequired; source?: string; parameters?: Array<{ name: string; location: EndpointParameterLocation; exampleValue?: string; source?: string; interesting?: boolean; frequency?: number }>; }
+export interface CreateScannerFindingInput { programId: string; assetId?: string; urlId?: string; endpointId?: string; tool?: ScannerTool; severity?: ScannerFindingSeverity; templateId?: string; name: string; description?: string; matcher?: string; matchedUrl?: string; evidenceSnippet?: string; extractedResults?: unknown[]; }
 
 export interface ToolHealthDto {
   name: "subfinder" | "dnsx" | "httpx";

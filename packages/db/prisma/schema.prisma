@@ -37,6 +37,9 @@ model Program {
   assets           Asset[]
   dnsRecords       DnsRecord[]
   httpServices     HttpService[]
+  urls             Url[]
+  apiEndpoints     ApiEndpoint[]
+  scannerFindings  ScannerFinding[]
   jobs             Job[]
   scopeGuardChecks ScopeGuardCheck[]
 }
@@ -111,29 +114,32 @@ model AuditLog {
 }
 
 model Asset {
-  id              String        @id @default(cuid())
+  id              String           @id @default(cuid())
   programId       String
-  program         Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  program         Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
   type            String
   value           String
   normalizedValue String
   parentAssetId   String?
-  scopeStatus     String        @default("unknown")
-  status          String        @default("new")
-  autoScore       Int           @default(0)
+  scopeStatus     String           @default("unknown")
+  status          String           @default("new")
+  autoScore       Int              @default(0)
   manualScore     Int?
-  finalScore      Int           @default(0)
-  confidence      Int           @default(0)
+  finalScore      Int              @default(0)
+  confidence      Int              @default(0)
   categories      Json?
   reasonTags      Json?
   sourceTools     Json?
-  firstSeenAt     DateTime      @default(now())
-  lastSeenAt      DateTime      @default(now())
+  firstSeenAt     DateTime         @default(now())
+  lastSeenAt      DateTime         @default(now())
   lastChangedAt   DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
   dnsRecords      DnsRecord[]
   httpServices    HttpService[]
+  urls            Url[]
+  endpoints       ApiEndpoint[]
+  scannerFindings ScannerFinding[]
 
   @@unique([programId, type, normalizedValue])
   @@index([programId])
@@ -191,10 +197,155 @@ model HttpService {
   lastSeenAt      DateTime @default(now())
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+  urls            Url[]
 
   @@unique([programId, normalizedUrl])
   @@index([programId])
   @@index([host])
+}
+
+model Url {
+  id               String           @id @default(cuid())
+  programId        String
+  program          Program          @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assetId          String?
+  asset            Asset?           @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  httpServiceId    String?
+  httpService      HttpService?     @relation(fields: [httpServiceId], references: [id], onDelete: SetNull)
+  url              String
+  normalizedUrl    String
+  scheme           String?
+  host             String
+  port             Int?
+  path             String?
+  queryParamKeys   Json?
+  title            String?
+  statusCode       Int?
+  contentType      String?
+  contentLength    Int?
+  responseTimeMs   Int?
+  redirectLocation String?
+  technologies     Json?
+  server           String?
+  categories       Json?
+  reasonTags       Json?
+  sourceTools      Json?
+  scopeStatus      String           @default("unknown")
+  status           String           @default("new")
+  autoScore        Int              @default(0)
+  manualScore      Int?
+  finalScore       Int              @default(0)
+  confidence       Int              @default(0)
+  firstSeenAt      DateTime         @default(now())
+  lastSeenAt       DateTime         @default(now())
+  lastReviewedAt   DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  endpoints        ApiEndpoint[]
+  scannerFindings  ScannerFinding[]
+
+  @@unique([programId, normalizedUrl])
+  @@index([programId])
+  @@index([assetId])
+  @@index([httpServiceId])
+  @@index([host])
+  @@index([status])
+  @@index([finalScore])
+}
+
+model ApiEndpoint {
+  id                String              @id @default(cuid())
+  programId         String
+  program           Program             @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assetId           String?
+  asset             Asset?              @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  urlId             String?
+  url               Url?                @relation(fields: [urlId], references: [id], onDelete: SetNull)
+  method            String              @default("UNKNOWN")
+  path              String
+  fullUrl           String
+  normalizedFullUrl String
+  statusCode        Int?
+  contentType       String?
+  authRequired      String              @default("unknown")
+  source            String              @default("manual")
+  status            String              @default("new")
+  categories        Json?
+  reasonTags        Json?
+  autoScore         Int                 @default(0)
+  manualScore       Int?
+  finalScore        Int                 @default(0)
+  confidence        Int                 @default(0)
+  notesCount        Int                 @default(0)
+  firstSeenAt       DateTime            @default(now())
+  lastSeenAt        DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  parameters        EndpointParameter[]
+  scannerFindings   ScannerFinding[]
+
+  @@unique([programId, method, normalizedFullUrl])
+  @@index([programId])
+  @@index([assetId])
+  @@index([urlId])
+  @@index([method])
+  @@index([statusCode])
+  @@index([finalScore])
+}
+
+model EndpointParameter {
+  id           String      @id @default(cuid())
+  endpointId   String
+  endpoint     ApiEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  name         String
+  location     String
+  exampleValue String?
+  source       String?
+  interesting  Boolean     @default(false)
+  frequency    Int?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([endpointId, name, location])
+  @@index([endpointId])
+  @@index([name])
+  @@index([location])
+  @@index([interesting])
+}
+
+model ScannerFinding {
+  id               String       @id @default(cuid())
+  programId        String
+  program          Program      @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assetId          String?
+  asset            Asset?       @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  urlId            String?
+  url              Url?         @relation(fields: [urlId], references: [id], onDelete: SetNull)
+  endpointId       String?
+  endpoint         ApiEndpoint? @relation(fields: [endpointId], references: [id], onDelete: SetNull)
+  tool             String       @default("manual")
+  severity         String       @default("info")
+  templateId       String?
+  name             String
+  description      String?
+  matcher          String?
+  matchedUrl       String?
+  evidenceSnippet  String?
+  extractedResults Json?
+  status           String       @default("new")
+  firstSeenAt      DateTime     @default(now())
+  lastSeenAt       DateTime     @default(now())
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([programId])
+  @@index([assetId])
+  @@index([urlId])
+  @@index([endpointId])
+  @@index([tool])
+  @@index([severity])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model ScoreEvent {

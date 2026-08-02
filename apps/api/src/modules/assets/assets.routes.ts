@@ -1,5 +1,5 @@
 import type { Prisma } from "@bountyops/db";
-import { ASSET_TYPES, CATEGORIES, REASON_TAGS, priorityFromScore } from "@bountyops/shared";
+import { ASSET_TYPES, AUTH_REQUIRED_VALUES, CATEGORIES, ENDPOINT_METHODS, SCANNER_FINDING_SEVERITIES, SCANNER_FINDING_STATUSES, SCANNER_TOOLS, REASON_TAGS, priorityFromScore } from "@bountyops/shared";
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ApiError, parseRequest } from "../../utils/response.js";
@@ -23,6 +23,9 @@ const reviewQuery = z.object({
   programId: z.string().optional(), minScore: z.coerce.number().int().min(0).default(8),
   status: z.string().optional(), limit: z.coerce.number().int().min(1).max(500).default(100),
 });
+const relatedUrlQuery = z.object({ statusCode: z.coerce.number().int().optional(), category: z.enum(CATEGORIES).optional(), source: z.string().optional(), minScore: z.coerce.number().int().min(0).optional(), search: z.string().optional(), limit: z.coerce.number().int().min(1).max(500).default(100) });
+const relatedEndpointQuery = z.object({ method: z.enum(ENDPOINT_METHODS).optional(), statusCode: z.coerce.number().int().optional(), category: z.enum(CATEGORIES).optional(), authRequired: z.enum(AUTH_REQUIRED_VALUES).optional(), hasParameters: z.enum(["true", "false"]).transform((value) => value === "true").optional(), minScore: z.coerce.number().int().min(0).optional(), search: z.string().optional(), limit: z.coerce.number().int().min(1).max(500).default(100) });
+const relatedFindingQuery = z.object({ severity: z.enum(SCANNER_FINDING_SEVERITIES).optional(), status: z.enum(SCANNER_FINDING_STATUSES).optional(), tool: z.enum(SCANNER_TOOLS).optional(), search: z.string().optional(), limit: z.coerce.number().int().min(1).max(500).default(100) });
 
 function scoreRange(priority: "P1" | "P2" | "Monitor" | "Low" | undefined, minScore?: number): Prisma.IntFilter | undefined {
   const range: Prisma.IntFilter = {};
@@ -72,7 +75,7 @@ export async function assetsRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/assets/:assetId", { preHandler: app.requireAuth }, async (request) => {
     const { assetId } = parseRequest(assetParams, request.params);
-    const asset = await app.prisma.asset.findUnique({ where: { id: assetId }, include: { dnsRecords: { orderBy: { lastSeenAt: "desc" } }, httpServices: { orderBy: { lastSeenAt: "desc" } } } });
+    const asset = await app.prisma.asset.findUnique({ where: { id: assetId }, include: { dnsRecords: { orderBy: { lastSeenAt: "desc" } }, httpServices: { orderBy: { lastSeenAt: "desc" } }, _count: { select: { urls: true, endpoints: true, scannerFindings: true } } } });
     if (!asset) throw new ApiError(404, "NOT_FOUND", "Asset not found");
     const serviceIds = asset.httpServices.map((service) => service.id);
     const [changes, scoreEvents, classifications] = await Promise.all([
@@ -80,7 +83,27 @@ export async function assetsRoutes(app: FastifyInstance): Promise<void> {
       app.prisma.scoreEvent.findMany({ where: { OR: [{ entityType: "asset", entityId: assetId }, { entityType: "http_service", entityId: { in: serviceIds } }] }, orderBy: { createdAt: "desc" } }),
       app.prisma.entityClassification.findMany({ where: { OR: [{ entityType: "asset", entityId: assetId }, { entityType: "http_service", entityId: { in: serviceIds } }] }, orderBy: { category: "asc" } }),
     ]);
-    return { asset: withPriority(asset), dnsRecords: asset.dnsRecords, httpServices: asset.httpServices, changes, scoreEvents, classifications };
+    const categories = [...new Set([...stringList(asset.categories), ...classifications.map((item) => item.category)])];
+    const reasonTags = [...new Set([...stringList(asset.reasonTags), ...scoreEvents.map((item) => item.reasonTag)])];
+    const scoreExplanation = { entityType: "asset", entityId: asset.id, autoScore: asset.autoScore, manualScore: asset.manualScore, finalScore: asset.finalScore, priority: priorityFromScore(asset.finalScore), confidence: asset.confidence, categories, reasonTags, events: scoreEvents };
+    return { asset: withPriority(asset), dnsRecords: asset.dnsRecords, httpServices: asset.httpServices, urlsCount: asset._count.urls, endpointsCount: asset._count.endpoints, scannerFindingsCount: asset._count.scannerFindings, changes, scoreEvents, classifications, scoreExplanation };
+  });
+
+  app.get("/assets/:assetId/urls", { preHandler: app.requireAuth }, async (request) => {
+    const { assetId } = parseRequest(assetParams, request.params); await findAsset(app, assetId); const query = parseRequest(relatedUrlQuery, request.query);
+    const items = await app.prisma.url.findMany({ where: { assetId, statusCode: query.statusCode, finalScore: query.minScore === undefined ? undefined : { gte: query.minScore }, categories: query.category ? { array_contains: [query.category] } : undefined, sourceTools: query.source ? { array_contains: [query.source] } : undefined, ...(query.search ? { OR: [{ url: { contains: query.search, mode: "insensitive" } }, { title: { contains: query.search, mode: "insensitive" } }] } : {}) }, orderBy: [{ finalScore: "desc" }, { lastSeenAt: "desc" }], take: query.limit });
+    return items.map(withPriority);
+  });
+
+  app.get("/assets/:assetId/endpoints", { preHandler: app.requireAuth }, async (request) => {
+    const { assetId } = parseRequest(assetParams, request.params); await findAsset(app, assetId); const query = parseRequest(relatedEndpointQuery, request.query);
+    const items = await app.prisma.apiEndpoint.findMany({ where: { assetId, method: query.method, statusCode: query.statusCode, authRequired: query.authRequired, finalScore: query.minScore === undefined ? undefined : { gte: query.minScore }, categories: query.category ? { array_contains: [query.category] } : undefined, parameters: query.hasParameters === undefined ? undefined : query.hasParameters ? { some: {} } : { none: {} }, ...(query.search ? { OR: [{ path: { contains: query.search, mode: "insensitive" } }, { fullUrl: { contains: query.search, mode: "insensitive" } }] } : {}) }, include: { _count: { select: { parameters: true, scannerFindings: true } } }, orderBy: [{ finalScore: "desc" }, { lastSeenAt: "desc" }], take: query.limit });
+    return items.map((item) => ({ ...withPriority(item), parametersCount: item._count.parameters, scannerFindingsCount: item._count.scannerFindings }));
+  });
+
+  app.get("/assets/:assetId/scanner-findings", { preHandler: app.requireAuth }, async (request) => {
+    const { assetId } = parseRequest(assetParams, request.params); await findAsset(app, assetId); const query = parseRequest(relatedFindingQuery, request.query);
+    return app.prisma.scannerFinding.findMany({ where: { assetId, severity: query.severity, status: query.status, tool: query.tool, ...(query.search ? { OR: [{ name: { contains: query.search, mode: "insensitive" } }, { description: { contains: query.search, mode: "insensitive" } }] } : {}) }, orderBy: { createdAt: "desc" }, take: query.limit });
   });
 
   app.get("/assets/:assetId/score-explanation", { preHandler: app.requireAuth }, async (request) => {

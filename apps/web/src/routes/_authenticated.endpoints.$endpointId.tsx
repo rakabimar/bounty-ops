@@ -1,18 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { EndpointDetailPage } from "@/components/detail-pages";
-import { q } from "@/lib/queries";
+import { CoreEndpointDetailPage } from "@/components/core-detail-pages";
+import { API_MODE } from "@/lib/api-client";
 
 export const Route = createFileRoute("/_authenticated/endpoints/$endpointId")({
-  loader: async ({ context, params }) => {
-    await Promise.all([
-      context.queryClient.ensureQueryData(q.endpointDetail(params.endpointId)),
-      context.queryClient.ensureQueryData(q.entityNotes("endpoint", params.endpointId)),
-      context.queryClient.ensureQueryData(q.entityChecklist("endpoint", params.endpointId)),
-      context.queryClient.ensureQueryData(q.entityRequests("endpoint", params.endpointId)),
-    ]);
-  },
   component: () => {
     const { endpointId } = Route.useParams();
-    return <EndpointDetailPage endpointId={endpointId} />;
+    return API_MODE === "http" ? <CoreEndpointDetailPage endpointId={endpointId} /> : <EndpointDetailPage endpointId={endpointId} />;
   },
 });

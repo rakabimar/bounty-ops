@@ -42,19 +42,21 @@ async function replaceEntityScoring(programId: string, entityType: "asset" | "ht
 }
 
 async function aggregateAsset(assetId: string) {
-  const asset = await prisma.asset.findUnique({ where: { id: assetId }, include: { httpServices: { select: { id: true } } } });
+  const asset = await prisma.asset.findUnique({ where: { id: assetId }, include: { httpServices: { select: { id: true } }, urls: { select: { id: true } }, endpoints: { select: { id: true } } } });
   if (!asset) return;
   const serviceIds = asset.httpServices.map((service) => service.id);
-  const entityIds = [asset.id, ...serviceIds];
+  const urlIds = asset.urls.map((item) => item.id);
+  const endpointIds = asset.endpoints.map((item) => item.id);
+  const entityIds = [asset.id, ...serviceIds, ...urlIds, ...endpointIds];
   const [events, classifications] = await Promise.all([
-    prisma.scoreEvent.findMany({ where: { entityId: { in: entityIds }, entityType: { in: ["asset", "http_service"] }, source: "scoring_engine", matched: true } }),
-    prisma.entityClassification.findMany({ where: { entityId: { in: entityIds }, entityType: { in: ["asset", "http_service"] }, source: "scoring_engine" } }),
+    prisma.scoreEvent.findMany({ where: { entityId: { in: entityIds }, entityType: { in: ["asset", "http_service", "url", "endpoint"] }, source: "scoring_engine", matched: true } }),
+    prisma.entityClassification.findMany({ where: { entityId: { in: entityIds }, entityType: { in: ["asset", "http_service", "url", "endpoint"] }, source: "scoring_engine" } }),
   ]);
   const scores = new Map<string, number>();
   for (const item of events) scores.set(item.entityId, (scores.get(item.entityId) ?? 0) + item.scoreDelta);
   const ownScore = Math.max(0, scores.get(asset.id) ?? 0);
-  const serviceScore = Math.max(0, ...serviceIds.map((id) => Math.max(0, scores.get(id) ?? 0)));
-  const autoScore = Math.max(ownScore, serviceScore);
+  const relatedScore = Math.max(0, ...[...serviceIds, ...urlIds, ...endpointIds].map((id) => Math.max(0, scores.get(id) ?? 0)));
+  const autoScore = Math.max(ownScore, relatedScore);
   const categories = [...new Set(classifications.map((item) => item.category))];
   const reasonTags = [...new Set(events.map((item) => item.reasonTag))];
   const confidence = classifications.length ? Math.max(...classifications.map((item) => item.confidence)) : events.length ? 50 : 25;

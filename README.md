@@ -359,3 +359,43 @@ curl -b cookies.txt "http://localhost:3000/manual-review/queue?programId=PROGRAM
 the local database, verifies scoring, explanations, overrides, and review
 ordering, then removes the fixture. It performs no DNS, HTTP, or public-target
 recon.
+
+## Phase 8 detail workspaces
+
+Phase 8 makes the Target, URL, Endpoint, and Scanner Finding detail workspaces
+real-data backed in HTTP mode. Target detail includes DNS records, HTTP
+services, related URLs, endpoints, scanner findings, changes, and its score
+explanation. URL and endpoint workspaces include their relationships, status,
+score events, and manual score overrides. Scanner findings are explicitly
+review candidates, not confirmed vulnerabilities, and can be moved to the
+`potential_bug` state for manual investigation.
+
+The protected `POST /urls`, `POST /endpoints`, and `POST /scanner-findings`
+routes provide manual/dev ingestion for smoke tests and local workflows until
+later phases add authorized katana or nuclei ingestion. Each target-bearing
+create request passes Scope Guard. Phase 8 adds no recon tools and runs no
+scanner, crawler, DNS, or HTTP target request.
+
+Useful detail requests after login include:
+
+```sh
+curl -b cookies.txt http://localhost:3000/assets/ASSET_ID
+curl -b cookies.txt http://localhost:3000/assets/ASSET_ID/urls
+curl -b cookies.txt http://localhost:3000/urls/URL_ID
+curl -b cookies.txt http://localhost:3000/endpoints/ENDPOINT_ID
+curl -b cookies.txt http://localhost:3000/scanner-findings/FINDING_ID
+curl -b cookies.txt -X PATCH \
+  http://localhost:3000/scanner-findings/FINDING_ID/status \
+  -H "content-type: application/json" \
+  -d '{"status":"potential_bug"}'
+```
+
+Run the repeatable local smoke test with:
+
+```sh
+pnpm smoke:phase8
+```
+
+The smoke test uses controlled database fixtures and Fastify request injection.
+Although the fixture uses documentation-domain names, it performs no DNS,
+HTTP, scanner, or other public-target recon and removes its temporary data.

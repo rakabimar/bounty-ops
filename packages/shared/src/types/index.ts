@@ -317,7 +317,7 @@ export interface ScoringPreviewResponse {
 }
 
 export interface ScoreExplanationDto {
-  entityType: "asset";
+  entityType: EntityType;
   entityId: string;
   autoScore: number;
   manualScore: number | null;
@@ -449,6 +449,64 @@ export interface LiveHostFilters {
   minScore?: number;
   limit?: number;
 }
+
+export type UrlStatus = AssetStatus;
+export type EndpointMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "OPTIONS" | "HEAD" | "UNKNOWN";
+export type AuthRequired = "yes" | "no" | "unknown";
+export type EndpointParameterLocation = "query" | "body" | "path" | "header" | "cookie";
+export type ScannerFindingSeverity = "info" | "low" | "medium" | "high" | "critical";
+export type ScannerFindingStatus = "new" | "reviewed" | "interesting" | "false_positive" | "potential_bug" | "ignored";
+export type ScannerTool = "nuclei" | "custom" | "manual";
+
+export interface UrlDto {
+  id: string; programId: string; assetId: string | null; httpServiceId: string | null;
+  url: string; normalizedUrl: string; scheme: string | null; host: string; port: number | null;
+  path: string | null; queryParamKeys: string[] | null; title: string | null; statusCode: number | null;
+  contentType: string | null; contentLength: number | null; responseTimeMs: number | null;
+  redirectLocation: string | null; technologies: string[] | null; server: string | null;
+  categories: Category[] | null; reasonTags: ReasonTag[] | null; sourceTools: string[] | null;
+  scopeStatus: ScopeStatus; status: UrlStatus; autoScore: number; manualScore: number | null;
+  finalScore: number; priority: Priority; confidence: number; firstSeenAt: string; lastSeenAt: string;
+  lastReviewedAt: string | null; createdAt: string; updatedAt: string;
+}
+
+export interface EndpointParameterDto {
+  id: string; endpointId: string; name: string; location: EndpointParameterLocation;
+  exampleValue: string | null; source: string | null; interesting: boolean; frequency: number | null;
+  createdAt: string; updatedAt: string;
+}
+
+export interface ApiEndpointDto {
+  id: string; programId: string; assetId: string | null; urlId: string | null; method: EndpointMethod;
+  path: string; fullUrl: string; normalizedFullUrl: string; statusCode: number | null; contentType: string | null;
+  authRequired: AuthRequired; source: string; status: UrlStatus; categories: Category[] | null;
+  reasonTags: ReasonTag[] | null; autoScore: number; manualScore: number | null; finalScore: number;
+  priority: Priority; confidence: number; notesCount: number; firstSeenAt: string; lastSeenAt: string;
+  createdAt: string; updatedAt: string; parametersCount?: number; scannerFindingsCount?: number;
+  parameters?: EndpointParameterDto[];
+}
+
+export interface ScannerFindingDto {
+  id: string; programId: string; assetId: string | null; urlId: string | null; endpointId: string | null;
+  tool: ScannerTool; severity: ScannerFindingSeverity; templateId: string | null; name: string;
+  description: string | null; matcher: string | null; matchedUrl: string | null; evidenceSnippet: string | null;
+  extractedResults: unknown[] | null; status: ScannerFindingStatus; firstSeenAt: string; lastSeenAt: string;
+  createdAt: string; updatedAt: string;
+}
+
+export interface EntityChangeDto {
+  id: string; programId: string; entityType: string; entityId: string; type: string; summary: string;
+  oldValue: string | null; newValue: string | null; source: string; importance: string; createdAt: string;
+}
+
+export interface UrlDetailDto { url: UrlDto; asset: AssetDto | null; httpService: HttpServiceDto | null; endpoints: ApiEndpointDto[]; scannerFindings: ScannerFindingDto[]; parameters: EndpointParameterDto[]; changes: EntityChangeDto[]; scoreExplanation: ScoreExplanationDto; }
+export interface ApiEndpointDetailDto { endpoint: ApiEndpointDto; asset: AssetDto | null; url: UrlDto | null; parameters: EndpointParameterDto[]; scannerFindings: ScannerFindingDto[]; changes: EntityChangeDto[]; scoreExplanation: ScoreExplanationDto; }
+export interface ScannerFindingDetailDto { finding: ScannerFindingDto; asset: AssetDto | null; url: UrlDto | null; endpoint: ApiEndpointDto | null; changes: EntityChangeDto[]; relatedScoreEvents: ScoreEventDto[]; }
+export interface AssetDetailDto { asset: AssetDto; dnsRecords: DnsRecordDto[]; httpServices: HttpServiceDto[]; urlsCount: number; endpointsCount: number; scannerFindingsCount: number; changes: EntityChangeDto[]; scoreExplanation?: ScoreExplanationDto; }
+
+export interface UrlFilters { programId?: string; assetId?: string; host?: string; statusCode?: number; category?: Category; reasonTag?: ReasonTag; minScore?: number; search?: string; limit?: number; }
+export interface EndpointFilters { programId?: string; assetId?: string; urlId?: string; method?: EndpointMethod; statusCode?: number; category?: Category; authRequired?: AuthRequired; minScore?: number; search?: string; limit?: number; }
+export interface ScannerFindingFilters { programId?: string; assetId?: string; urlId?: string; endpointId?: string; severity?: ScannerFindingSeverity; status?: ScannerFindingStatus; tool?: ScannerTool; search?: string; limit?: number; }
 
 export interface ApiResponse<T> {
   data: T;

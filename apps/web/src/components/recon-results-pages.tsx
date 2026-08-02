@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import type { AssetDto, Category, HttpServiceDto, Priority, ReasonTag } from "@bountyops/shared";
 import { toast } from "sonner";
 import { coreApi } from "@/lib/api-client";
@@ -70,6 +71,7 @@ export function ReconAssetsPage() {
       { key: "score", label: "Score", render: (item) => <span><b className="text-primary">{item.finalScore}</b>{item.manualScore !== null && <span className="ml-1 text-xs text-muted-foreground">manual</span>}</span> },
       { key: "categories", label: "Categories", render: (item) => list(item.categories).join(", ") || "-" },
       { key: "seen", label: "Last seen", render: (item) => new Date(item.lastSeenAt).toLocaleString() },
+      { key: "action", label: "", render: (item) => <Button asChild variant="ghost" size="sm"><Link to="/assets/$assetId" params={{ assetId: item.id }}>Target Detail</Link></Button> },
     ]} />}
     <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-2xl">

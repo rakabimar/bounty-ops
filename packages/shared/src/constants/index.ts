@@ -125,3 +125,10 @@ export const PRIORITY_THRESHOLDS = {
   P2: 8,
   Monitor: 3,
 } as const;
+
+export const ENDPOINT_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "HEAD", "UNKNOWN"] as const;
+export const AUTH_REQUIRED_VALUES = ["yes", "no", "unknown"] as const;
+export const ENDPOINT_PARAMETER_LOCATIONS = ["query", "body", "path", "header", "cookie"] as const;
+export const SCANNER_FINDING_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
+export const SCANNER_FINDING_STATUSES = ["new", "reviewed", "interesting", "false_positive", "potential_bug", "ignored"] as const;
+export const SCANNER_TOOLS = ["nuclei", "custom", "manual"] as const;
