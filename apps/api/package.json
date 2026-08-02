@@ -7,6 +7,8 @@
     "build": "tsc",
     "start": "node dist/main.js",
     "smoke:phase5": "tsx scripts/phase5-smoke.ts",
+    "smoke:phase6": "tsx scripts/phase6-smoke.ts",
+    "smoke:phase7": "tsx scripts/phase7-smoke.ts",
     "lint": "echo \"No API lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },
@@ -23,6 +25,7 @@
     "fastify-plugin": "latest",
     "ipaddr.js": "latest",
     "ioredis": "latest",
+    "yaml": "latest",
     "zod": "latest"
   },
   "devDependencies": {

@@ -11,6 +11,9 @@ import { scopesRoutes } from "./modules/scopes/scopes.routes.js";
 import { settingsRoutes } from "./modules/settings/settings.routes.js";
 import { scopeGuardRoutes } from "./modules/scope-guard/scope-guard.routes.js";
 import { jobsRoutes } from "./modules/jobs/jobs.routes.js";
+import { assetsRoutes } from "./modules/assets/assets.routes.js";
+import { toolsRoutes } from "./modules/tools/tools.routes.js";
+import { scoringRoutes } from "./modules/scoring/scoring.routes.js";
 import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { prismaPlugin } from "./plugins/prisma.js";
@@ -62,6 +65,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(auditRoutes);
   await app.register(scopeGuardRoutes);
   await app.register(jobsRoutes);
+  await app.register(assetsRoutes);
+  await app.register(toolsRoutes);
+  await app.register(scoringRoutes);
 
   return app;
 }

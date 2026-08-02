@@ -3,7 +3,7 @@ import { priorityFromScore } from "./bounty-types";
 import { API_BASE_URL, API_MODE } from "./api-config";
 import { RECON_JOB_DEFAULT_STAGES } from "@bountyops/shared";
 import type { AppSettings, Asset, AssetStatus, ChecklistItem, DiscoveredEndpoint, EntityType, EvidenceRequest, IntakeInput, IntakePreview, InterestingRequest, MockDb, Note, NotificationSettings, Program, ReconJob, ResearchNote, Rules, ScannerFinding, ScannerFindingStatus, ScopeAsset, ScoringRule } from "./bounty-types";
-import type { AuditFilters, AuditLogDto, AuthUser, BulkScopeGuardPreflightInput, CreateHeaderInput, CreateJobRequest, CreateProgramInput, CreateScopeInput, JobDto, JobFilters, JobLogsDto, JobQueueHealthDto, ProgramDetailDto, ProgramDto, ProgramFilters, ProgramHeaderDto, ProgramRulesDto, ProgramScopeDto, RetryJobInput, ScopeGuardPreflightInput, ScopeGuardPreflightResult, ScopeGuardSummary, UpdateHeaderInput, UpdateProgramInput, UpdateRulesInput, UpdateScopeInput } from "./api-types";
+import type { AssetDetailResponse, AssetDto, AssetInventoryFilters, AuditFilters, AuditLogDto, AuthUser, BulkScopeGuardPreflightInput, CreateHeaderInput, CreateJobRequest, CreateProgramInput, CreateScopeInput, DnsRecordDto, EntityChangeDto, HttpServiceDto, JobDto, JobFilters, JobLogsDto, JobQueueHealthDto, LiveHostFilters, ProgramDetailDto, ProgramDto, ProgramFilters, ProgramHeaderDto, ProgramRulesDto, ProgramScopeDto, RetryJobInput, ScopeGuardPreflightInput, ScopeGuardPreflightResult, ScopeGuardSummary, ScoreExplanationDto, ScoringConfigDto, ScoringPreviewRequest, ScoringPreviewResponse, ToolHealthDto, UpdateHeaderInput, UpdateProgramInput, UpdateRulesInput, UpdateScopeInput } from "./api-types";
 
 const DB_KEY = "bountyops.mock.db.v2";
 const AUTH_KEY = "bountyops.auth";
@@ -314,7 +314,7 @@ export const api = {
   },
 };
 
-const qs=(values:Record<string,string|number|undefined>)=>{const search=new URLSearchParams();for(const [key,value] of Object.entries(values)){if(value!==undefined&&value!=="")search.set(key,String(value));}const value=search.toString();return value?`?${value}`:"";};
+const qs=(values:Record<string,string|number|boolean|undefined>)=>{const search=new URLSearchParams();for(const [key,value] of Object.entries(values)){if(value!==undefined&&value!=="")search.set(key,String(value));}const value=search.toString();return value?`?${value}`:"";};
 const now=()=>new Date().toISOString();
 const platformToApi=(value:Program["platform"]):ProgramDto["platform"]=>({HackerOne:"hackerone",Bugcrowd:"bugcrowd",YesWeHack:"yeswehack",Custom:"custom"} as const)[value];
 const platformFromApi=(value:ProgramDto["platform"]):Program["platform"]=>({hackerone:"HackerOne",bugcrowd:"Bugcrowd",yeswehack:"YesWeHack",custom:"Custom"} as const)[value];
@@ -377,4 +377,40 @@ export const coreApi={
   cancelJob:async(id:string):Promise<JobDto>=>{if(API_MODE==="http")return request(`/jobs/${id}/cancel`,{method:"POST"});const item=await api.cancelJob(id);if(!item)throw new ApiError(404,"NOT_FOUND","Job not found");return mockJobDto(item);},
   retryJob:async(id:string,input:RetryJobInput={}):Promise<JobDto>=>API_MODE==="http"?request(`/jobs/${id}/retry`,{method:"POST",body:JSON.stringify(input)}):coreApi.getJob(id),
   getJobQueueHealth:async():Promise<JobQueueHealthDto>=>API_MODE==="http"?request("/jobs/queue/health"):{queueName:"recon-jobs",redis:"ok",counts:{waiting:0,active:0,completed:0,failed:0,delayed:0},timestamp:now()},
+  getAssets:async(filters:AssetInventoryFilters={}):Promise<AssetDto[]>=>{
+    if(API_MODE==="http")return request(`/assets${qs({...filters})}`);
+    return api.assets(filters.programId).then(items=>items.map(item=>({id:item.id,programId:item.programId,type:item.type==="domain"?"root_domain":item.type==="subdomain"?"subdomain":"host",value:item.value,normalizedValue:item.value.toLowerCase(),parentAssetId:null,scopeStatus:item.scope,status:item.status,autoScore:item.autoScore,manualScore:item.manualScore,finalScore:item.finalScore,priority:priorityFromScore(item.finalScore),confidence:80,categories:item.categories,reasonTags:item.reasons,sourceTools:[],firstSeenAt:item.firstSeen,lastSeenAt:item.lastSeen,lastChangedAt:null,createdAt:item.firstSeen,updatedAt:item.lastSeen} as AssetDto)));
+  },
+  getAsset:async(id:string):Promise<AssetDetailResponse>=>API_MODE==="http"?request(`/assets/${id}`):coreApi.getAssets().then(items=>{const asset=items.find(item=>item.id===id);if(!asset)throw new ApiError(404,"NOT_FOUND","Asset not found");return {asset,dnsRecords:[],httpServices:[],changes:[]};}),
+  getAssetDnsRecords:async(id:string):Promise<DnsRecordDto[]>=>API_MODE==="http"?request(`/assets/${id}/dns-records`):[],
+  getAssetHttpServices:async(id:string):Promise<HttpServiceDto[]>=>API_MODE==="http"?request(`/assets/${id}/http-services`):[],
+  getAssetChanges:async(id:string):Promise<EntityChangeDto[]>=>API_MODE==="http"?request(`/assets/${id}/changes`):[],
+  getHttpServices:async(filters:LiveHostFilters={}):Promise<HttpServiceDto[]>=>{
+    if(API_MODE==="http")return request(`/http-services${qs({...filters})}`);
+    return api.services(filters.programId).then(items=>items.map(item=>({id:item.id,programId:item.programId,assetId:item.assetId,url:`${item.protocol}://${item.host}:${item.port}`,normalizedUrl:`${item.protocol}://${item.host}:${item.port}`,scheme:item.protocol,host:item.host,port:item.port,statusCode:item.status,title:item.title,webserver:null,technologies:item.technologies,contentLength:null,responseTimeMs:null,contentType:null,location:null,cdnName:null,failed:false,sourceTool:"mock",firstSeenAt:now(),lastSeenAt:now(),createdAt:now(),updatedAt:now()})));
+  },
+  getToolHealth:async():Promise<ToolHealthDto[]>=>API_MODE==="http"?request("/tools/health"):["subfinder","dnsx","httpx"].map(name=>({name:name as ToolHealthDto["name"],available:false,version:null,error:"Mock mode"})),
+  getScoreExplanation:async(id:string):Promise<ScoreExplanationDto>=>{
+    if(API_MODE==="http")return request(`/assets/${id}/score-explanation`);
+    const asset=(await coreApi.getAssets()).find(item=>item.id===id);if(!asset)throw new ApiError(404,"NOT_FOUND","Asset not found");
+    return {entityType:"asset",entityId:id,autoScore:asset.autoScore,manualScore:asset.manualScore,finalScore:asset.finalScore,priority:asset.priority,confidence:asset.confidence,categories:(asset.categories??[]) as ScoreExplanationDto["categories"],reasonTags:(asset.reasonTags??[]) as ScoreExplanationDto["reasonTags"],events:(asset.reasonTags??[]).map(reasonTag=>({ruleId:null,ruleName:null,reasonTag:reasonTag as ScoreExplanationDto["reasonTags"][number],scoreDelta:0,matched:true,evidence:null}))};
+  },
+  updateAssetManualScore:async(id:string,manualScore:number|null):Promise<AssetDto>=>{
+    if(API_MODE==="http")return request(`/assets/${id}/manual-score`,{method:"PATCH",body:JSON.stringify({manualScore})});
+    await api.updateAssetManualScore(id,manualScore);const asset=(await coreApi.getAssets()).find(item=>item.id===id);if(!asset)throw new ApiError(404,"NOT_FOUND","Asset not found");return asset;
+  },
+  getScoringRules:async():Promise<ScoringConfigDto>=>{
+    if(API_MODE==="http")return request("/scoring/rules");
+    const rawYaml="version: 1\npriorityThresholds:\n  P1: 15\n  P2: 8\n  Monitor: 3\nrules: []\n";
+    return {version:1,priorityThresholds:{P1:15,P2:8,Monitor:3},rules:[],rawYaml};
+  },
+  updateScoringRules:async(yaml:string):Promise<ScoringConfigDto>=>API_MODE==="http"?request("/scoring/rules",{method:"PUT",body:JSON.stringify({yaml})}):({version:1,priorityThresholds:{P1:15,P2:8,Monitor:3},rules:[],rawYaml:yaml}),
+  previewScoring:async(input:ScoringPreviewRequest):Promise<ScoringPreviewResponse>=>{
+    if(API_MODE==="http")return request("/scoring/preview",{method:"POST",body:JSON.stringify(input)});
+    const text=`${input.host??""} ${input.url??""} ${input.title??""}`.toLowerCase();const scoreEvents:ScoringPreviewResponse["scoreEvents"]=[];
+    if(text.includes("api"))scoreEvents.push({ruleId:"api_host",ruleName:"API host",reasonTag:"api_host",scoreDelta:4,matched:true,evidence:{host:input.host??null}});
+    if(text.includes("graphql"))scoreEvents.push({ruleId:"graphql_detected",ruleName:"GraphQL detected",reasonTag:"graphql_detected",scoreDelta:10,matched:true,evidence:{url:input.url??null}});
+    const autoScore=Math.max(0,scoreEvents.reduce((sum,item)=>sum+item.scoreDelta,0));return {categories:scoreEvents.map(item=>item.reasonTag==="graphql_detected"?"graphql":"api"),reasonTags:scoreEvents.map(item=>item.reasonTag),scoreEvents,autoScore,priority:priorityFromScore(autoScore),confidence:scoreEvents.length>1?90:scoreEvents.length?75:25};
+  },
+  getManualReviewQueue:async(filters:Pick<AssetInventoryFilters,"programId"|"minScore"|"status"|"limit">={}):Promise<AssetDto[]>=>API_MODE==="http"?request(`/manual-review/queue${qs({...filters})}`):coreApi.getAssets({...filters}).then(items=>items.filter(item=>item.scopeStatus==="in_scope"&&item.finalScore>=(filters.minScore??8))),
 };

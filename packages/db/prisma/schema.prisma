@@ -35,6 +35,8 @@ model Program {
   headers          ProgramHeader[]
   auditLogs        AuditLog[]
   assets           Asset[]
+  dnsRecords       DnsRecord[]
+  httpServices     HttpService[]
   jobs             Job[]
   scopeGuardChecks ScopeGuardCheck[]
 }
@@ -109,20 +111,147 @@ model AuditLog {
 }
 
 model Asset {
+  id              String        @id @default(cuid())
+  programId       String
+  program         Program       @relation(fields: [programId], references: [id], onDelete: Cascade)
+  type            String
+  value           String
+  normalizedValue String
+  parentAssetId   String?
+  scopeStatus     String        @default("unknown")
+  status          String        @default("new")
+  autoScore       Int           @default(0)
+  manualScore     Int?
+  finalScore      Int           @default(0)
+  confidence      Int           @default(0)
+  categories      Json?
+  reasonTags      Json?
+  sourceTools     Json?
+  firstSeenAt     DateTime      @default(now())
+  lastSeenAt      DateTime      @default(now())
+  lastChangedAt   DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  dnsRecords      DnsRecord[]
+  httpServices    HttpService[]
+
+  @@unique([programId, type, normalizedValue])
+  @@index([programId])
+}
+
+model DnsRecord {
   id          String   @id @default(cuid())
   programId   String
+  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assetId     String?
+  asset       Asset?   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  host        String
+  recordType  String
   value       String
-  type        String
-  status      String
-  scopeStatus String
-  autoScore   Int      @default(0)
-  manualScore Int?
-  finalScore  Int      @default(0)
+  ttl         Int?
+  resolver    String?
+  sourceTool  String   @default("dnsx")
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  program     Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([programId, host, recordType, value])
+  @@index([programId])
+  @@index([host])
+  @@index([recordType])
+  @@index([value])
+}
+
+model HttpService {
+  id              String   @id @default(cuid())
+  programId       String
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  assetId         String?
+  asset           Asset?   @relation(fields: [assetId], references: [id], onDelete: SetNull)
+  url             String
+  normalizedUrl   String
+  scheme          String?
+  host            String
+  port            Int?
+  statusCode      Int?
+  title           String?
+  webserver       String?
+  technologies    Json?
+  contentLength   Int?
+  responseTimeMs  Int?
+  contentType     String?
+  location        String?
+  cdnName         String?
+  titleHash       String?
+  fingerprintHash String?
+  failed          Boolean  @default(false)
+  sourceTool      String   @default("httpx")
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([programId, normalizedUrl])
+  @@index([programId])
+  @@index([host])
+}
+
+model ScoreEvent {
+  id         String   @id @default(cuid())
+  programId  String
+  entityType String
+  entityId   String
+  ruleId     String?
+  ruleName   String?
+  reasonTag  String
+  scoreDelta Int
+  matched    Boolean  @default(true)
+  evidence   Json?
+  source     String   @default("scoring_engine")
+  createdAt  DateTime @default(now())
 
   @@index([programId])
+  @@index([entityType, entityId])
+  @@index([reasonTag])
+  @@index([createdAt])
+}
+
+model EntityClassification {
+  id         String   @id @default(cuid())
+  programId  String
+  entityType String
+  entityId   String
+  category   String
+  confidence Int      @default(0)
+  source     String
+  evidence   Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([entityType, entityId, category])
+  @@index([programId])
+  @@index([category])
+  @@index([entityType, entityId])
+}
+
+model EntityChange {
+  id         String   @id @default(cuid())
+  programId  String
+  entityType String
+  entityId   String
+  type       String
+  summary    String
+  oldValue   String?
+  newValue   String?
+  source     String
+  importance String   @default("low")
+  createdAt  DateTime @default(now())
+
+  @@index([programId])
+  @@index([entityType, entityId])
+  @@index([type])
+  @@index([createdAt])
 }
 
 model Job {

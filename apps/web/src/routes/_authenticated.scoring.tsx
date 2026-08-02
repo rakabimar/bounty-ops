@@ -1,2 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router"; import { ScoringPage } from "@/components/triage-settings-pages"; import { q } from "@/lib/queries";
-export const Route=createFileRoute("/_authenticated/scoring")({loader:async({context})=>{await Promise.all([context.queryClient.ensureQueryData(q.scoring()),context.queryClient.ensureQueryData(q.assets())])},component:ScoringPage});
+import { createFileRoute } from "@tanstack/react-router";
+import { CoreScoringPage } from "@/components/core-scoring-page";
+export const Route = createFileRoute("/_authenticated/scoring")({ component: CoreScoringPage });

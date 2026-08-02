@@ -1,2 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router"; import { LiveHostsPage } from "@/components/inventory-pages"; import { q } from "@/lib/queries";
-export const Route=createFileRoute("/_authenticated/live-hosts")({loader:({context})=>context.queryClient.ensureQueryData(q.services()),component:LiveHostsPage});
+import { createFileRoute } from "@tanstack/react-router";
+import { ReconLiveHostsPage } from "@/components/recon-results-pages";
+import { coreQ } from "@/lib/queries";
+export const Route=createFileRoute("/_authenticated/live-hosts")({loader:({context})=>context.queryClient.ensureQueryData(coreQ.httpServices()),component:ReconLiveHostsPage});

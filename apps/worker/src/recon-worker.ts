@@ -1,12 +1,12 @@
 import { Prisma, prisma } from "@bountyops/db";
 import {
-  FULL_DEEP_RECON_STAGES,
   RECON_QUEUE_NAME,
   type JobLogEntry,
   type ReconQueueJobData,
 } from "@bountyops/shared";
 import { Worker, type Job as QueueJob } from "bullmq";
 import { Redis } from "ioredis";
+import { executeReconMvp } from "./services/recon-pipeline.service.js";
 
 const delay = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
@@ -71,15 +71,13 @@ async function processJob(queueJob: QueueJob<ReconQueueJobData>): Promise<void> 
   await audit(data, "job.running");
 
   try {
-    if (data.type === "full_deep_recon") {
-      for (const stage of FULL_DEEP_RECON_STAGES) {
-        await delay(100);
-        logs.push(entry(`Simulated stage completed: ${stage}`, "info", { simulated: true, stage }));
-        await saveLogs(run.id, logs);
-      }
-    } else {
+    const mvpResult = await executeReconMvp(data, async (message, level = "info", meta) => {
+      logs.push(entry(message, level, meta));
+      await saveLogs(run.id, logs);
+    });
+    if (!mvpResult) {
       await delay(500);
-      logs.push(entry(`Simulated ${data.type} execution completed`, "info", { simulated: true }));
+      logs.push(entry(`${data.type} is not implemented in Phase 6; simulated execution completed`, "info", { simulated: true }));
     }
 
     const latest = await prisma.job.findUnique({ where: { id: record.id }, select: { status: true } });
@@ -90,23 +88,19 @@ async function processJob(queueJob: QueueJob<ReconQueueJobData>): Promise<void> 
     }
 
     const finishedAt = new Date();
-    logs.push(entry("Job completed successfully", "info", { simulated: true }));
-    const resultSummary = {
-      simulated: true,
-      type: data.type,
-      target: data.target ?? null,
-      ...(data.type === "full_deep_recon" ? { stages: FULL_DEEP_RECON_STAGES.length } : {}),
-    };
+    logs.push(entry("Job completed successfully", "info", { simulated: !mvpResult }));
+    const resultSummary = mvpResult ?? { simulated: true, type: data.type, target: data.target ?? null };
     await prisma.$transaction([
       prisma.jobRun.update({ where: { id: run.id }, data: { status: "success", finishedAt, durationMs: finishedAt.getTime() - startedAt.getTime(), logs: logs as unknown as Prisma.InputJsonValue, resultSummary: resultSummary as Prisma.InputJsonValue } }),
       prisma.job.update({ where: { id: record.id }, data: { status: "success", error: null } }),
     ]);
-    await audit(data, "job.completed", { simulated: true });
+    await audit(data, "job.completed", { simulated: !mvpResult });
   } catch (error) {
     const message = safeError(error);
     const finishedAt = new Date();
     logs.push(entry(message, "error"));
     await prisma.$transaction([
+      prisma.toolRun.updateMany({ where: { jobRunId: run.id, status: "running" }, data: { status: "failed", finishedAt, error: message } }),
       prisma.jobRun.update({ where: { id: run.id }, data: { status: "failed", finishedAt, durationMs: finishedAt.getTime() - startedAt.getTime(), error: message, logs: logs as unknown as Prisma.InputJsonValue } }),
       prisma.job.update({ where: { id: record.id }, data: { status: "failed", error: message } }),
     ]);

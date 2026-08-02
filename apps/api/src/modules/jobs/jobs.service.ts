@@ -38,6 +38,11 @@ export async function resolveJobTarget(
   input: CreateJobRequest,
 ): Promise<{ storedTarget?: string; guardTarget: string }> {
   if (input.target?.trim()) return { storedTarget: input.target.trim(), guardTarget: input.target.trim() };
+  if (input.config && typeof input.config === "object" && !Array.isArray(input.config)) {
+    const hosts = (input.config as { hosts?: unknown }).hosts;
+    const first = Array.isArray(hosts) ? hosts.find((value): value is string => typeof value === "string" && Boolean(value.trim())) : undefined;
+    if (first) return { guardTarget: first.trim() };
+  }
   if (!OPTIONAL_TARGET_JOB_TYPES.includes(input.type as never)) {
     throw new ApiError(400, "BAD_REQUEST", "target is required for this job type");
   }

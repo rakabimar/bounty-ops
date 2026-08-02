@@ -18,6 +18,17 @@ import type {
   JobQueueHealthDto,
   JobStatus,
   ReconJobType,
+  AssetDto,
+  AssetInventoryFilters,
+  DnsRecordDto,
+  HttpServiceDto,
+  LiveHostFilters,
+  ScoreEventDto,
+  ScoreExplanationDto,
+  ScoringConfigDto,
+  ScoringPreviewRequest,
+  ScoringPreviewResponse,
+  EntityClassificationDto,
 } from "@bountyops/shared";
 
 export type {
@@ -38,8 +49,18 @@ export type {
   JobDto,
   JobLogsDto,
   JobQueueHealthDto,
+  ScoreEventDto,
+  ScoreExplanationDto,
+  ScoringConfigDto,
+  ScoringPreviewRequest,
+  ScoringPreviewResponse,
   JobStatus,
   ReconJobType,
+  AssetDto,
+  AssetInventoryFilters,
+  DnsRecordDto,
+  HttpServiceDto,
+  LiveHostFilters,
 };
 
 export interface BulkScopeGuardPreflightInput {
@@ -131,4 +152,34 @@ export interface JobFilters {
 export interface RetryJobInput {
   target?: string;
   manualApproved?: boolean;
+}
+
+export interface EntityChangeDto {
+  id: string;
+  programId: string;
+  entityType: string;
+  entityId: string;
+  type: string;
+  summary: string;
+  oldValue: string | null;
+  newValue: string | null;
+  source: string;
+  importance: string;
+  createdAt: string;
+}
+
+export interface AssetDetailResponse {
+  asset: AssetDto;
+  dnsRecords: DnsRecordDto[];
+  httpServices: HttpServiceDto[];
+  changes: EntityChangeDto[];
+  scoreEvents?: ScoreEventDto[];
+  classifications?: EntityClassificationDto[];
+}
+
+export interface ToolHealthDto {
+  name: "subfinder" | "dnsx" | "httpx";
+  available: boolean;
+  version: string | null;
+  error: string | null;
 }

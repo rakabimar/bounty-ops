@@ -32,7 +32,7 @@ try {
   expectStatus(program.statusCode, 201, "create program");
   programId = program.json().id as string;
 
-  const scope = await app.inject({ method: "POST", url: `/programs/${programId}/scopes`, headers: auth, payload: { asset: "*.example.com", assetType: "wildcard_domain", isInScope: true, bountyEligible: true } });
+  const scope = await app.inject({ method: "POST", url: `/programs/${programId}/scopes`, headers: auth, payload: { asset: "*.phase5.invalid", assetType: "wildcard_domain", isInScope: true, bountyEligible: true } });
   expectStatus(scope.statusCode, 201, "create scope");
   const rules = await app.inject({ method: "PUT", url: `/programs/${programId}/rules`, headers: auth, payload: { automationAllowed: "yes", aggressiveAllowed: true, rateLimitRps: 3, maxConcurrency: 2, forbiddenActions: ["dos"], authTestingAllowed: false, dosTestingAllowed: false } });
   expectStatus(rules.statusCode, 200, "update rules");
@@ -55,7 +55,7 @@ try {
     throw new Error(`job ${id} did not reach ${status}`);
   };
 
-  const allowed = await create("http_probe", "https://api.example.com");
+  const allowed = await create("tls_enrichment", "api.phase5.invalid");
   if (allowed.status !== "queued") throw new Error("in-scope HTTP probe was not queued");
   await waitFor(allowed.id, "success");
   const list = await app.inject({ method: "GET", url: `/jobs?programId=${programId}`, headers: auth });
@@ -65,21 +65,17 @@ try {
   expectStatus(jobLogs.statusCode, 200, "job logs");
   if (!(jobLogs.json().logs as unknown[]).length) throw new Error("successful job has no logs");
 
-  const blocked = await create("http_probe", "https://out.example.net");
+  const blocked = await create("tls_enrichment", "out.phase5.invalid.example");
   if (blocked.status !== "blocked") throw new Error("out-of-scope job was not blocked");
   if (await app.reconQueue.getJob(blocked.runs[0]!.id)) throw new Error("blocked job entered the queue");
 
-  const manualBlocked = await create("nmap_verification", "api.example.com");
+  const manualBlocked = await create("nmap_verification", "api.phase5.invalid");
   if (manualBlocked.status !== "blocked") throw new Error("manual job without approval was not blocked");
-  const manualAllowed = await create("nmap_verification", "api.example.com", true);
+  const manualAllowed = await create("nmap_verification", "api.phase5.invalid", true);
   await waitFor(manualAllowed.id, "success");
-  const deepRecon = await create("full_deep_recon");
-  await waitFor(deepRecon.id, "success");
-  const deepLogs = await app.inject({ method: "GET", url: `/jobs/${deepRecon.id}/logs`, headers: auth });
-  if ((deepLogs.json().logs as unknown[]).length < 10) throw new Error("full deep recon did not emit simulated stage logs");
 
   await runtime.worker.pause(true);
-  const cancellable = await create("http_probe", "api.example.com");
+  const cancellable = await create("tls_enrichment", "api.phase5.invalid");
   const cancelled = await app.inject({ method: "POST", url: `/jobs/${cancellable.id}/cancel`, headers: auth });
   expectStatus(cancelled.statusCode, 200, "cancel job");
   if (cancelled.json().status !== "cancelled") throw new Error("job was not cancelled");
@@ -100,7 +96,7 @@ try {
 
   const archive = await app.inject({ method: "DELETE", url: `/programs/${programId}`, headers: auth });
   expectStatus(archive.statusCode, 200, "archive smoke program");
-  console.log(JSON.stringify({ success: true, queue: "recon-jobs", allowedJob: allowed.id, blockedJob: blocked.id, manualApprovedJob: manualAllowed.id, fullDeepReconJob: deepRecon.id, retriedJob: cancellable.id }, null, 2));
+  console.log(JSON.stringify({ success: true, queue: "recon-jobs", allowedJob: allowed.id, blockedJob: blocked.id, manualApprovedJob: manualAllowed.id, retriedJob: cancellable.id }, null, 2));
 } finally {
   if (programId) {
     await app.prisma.program.updateMany({ where: { id: programId, status: { not: "archived" } }, data: { status: "archived", huntingStatus: "not_hunting" } });

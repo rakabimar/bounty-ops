@@ -50,4 +50,11 @@ export const coreQ = {
   job: (id:string) => queryOptions({queryKey:["core","job",id],queryFn:()=>coreApi.getJob(id)}),
   jobLogs: (id:string) => queryOptions({queryKey:["core","job-logs",id],queryFn:()=>coreApi.getJobLogs(id)}),
   queueHealth: () => queryOptions({queryKey:["core","jobs","queue-health"],queryFn:coreApi.getJobQueueHealth}),
+  assets: (filters:Parameters<typeof coreApi.getAssets>[0]={}) => queryOptions({queryKey:["core","assets",filters],queryFn:()=>coreApi.getAssets(filters)}),
+  asset: (id:string) => queryOptions({queryKey:["core","asset",id],queryFn:()=>coreApi.getAsset(id)}),
+  httpServices: (filters:Parameters<typeof coreApi.getHttpServices>[0]={}) => queryOptions({queryKey:["core","http-services",filters],queryFn:()=>coreApi.getHttpServices(filters)}),
+  toolHealth: () => queryOptions({queryKey:["core","tools","health"],queryFn:coreApi.getToolHealth}),
+  scoreExplanation: (id:string) => queryOptions({queryKey:["core","assets",id,"score-explanation"],queryFn:()=>coreApi.getScoreExplanation(id)}),
+  scoringRules: () => queryOptions({queryKey:["core","scoring","rules"],queryFn:coreApi.getScoringRules}),
+  manualReview: (filters:Parameters<typeof coreApi.getManualReviewQueue>[0]={}) => queryOptions({queryKey:["core","manual-review",filters],queryFn:()=>coreApi.getManualReviewQueue(filters)}),
 };

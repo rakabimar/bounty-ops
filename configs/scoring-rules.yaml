@@ -1,16 +1,183 @@
+version: 1
+priorityThresholds:
+  P1: 15
+  P2: 8
+  Monitor: 3
 rules:
-  - name: swagger_openapi
-    score: 10
-    reason_tag: swagger_detected
-  - name: graphql
-    score: 10
-    reason_tag: graphql_detected
-  - name: staging_dev
-    score: 8
-    reason_tag: staging_keyword
-  - name: login
-    score: 6
-    reason_tag: login_detected
-  - name: admin_dashboard
-    score: 8
-    reason_tag: admin_detected
+  - id: api_host
+    name: API host or path
+    enabled: true
+    entityTypes: [asset, http_service]
+    category: api
+    reasonTag: api_host
+    scoreDelta: 4
+    confidence: 75
+    match:
+      hostKeywords: [api, graphql, rest, v1, v2]
+      pathKeywords: [api, graphql, rest, v1, v2]
+    notes: API-shaped hosts and paths are useful manual-review targets.
+  - id: graphql_detected
+    name: GraphQL detected
+    enabled: true
+    entityTypes: [http_service]
+    category: graphql
+    reasonTag: graphql_detected
+    scoreDelta: 10
+    confidence: 90
+    match:
+      pathKeywords: [graphql, graphiql]
+      titleKeywords: [graphql, graphiql]
+  - id: swagger_detected
+    name: Swagger or OpenAPI detected
+    enabled: true
+    entityTypes: [http_service]
+    category: swagger_openapi
+    reasonTag: swagger_detected
+    scoreDelta: 10
+    confidence: 90
+    match:
+      pathKeywords: [swagger, openapi, api-docs, docs]
+      titleKeywords: [swagger, openapi, api-docs]
+  - id: admin_detected
+    name: Admin surface detected
+    enabled: true
+    entityTypes: [asset, http_service]
+    category: admin_dashboard
+    reasonTag: admin_detected
+    scoreDelta: 8
+    confidence: 80
+    match:
+      hostKeywords: [admin, dashboard, console, manage]
+      pathKeywords: [admin, dashboard, console, manage]
+      titleKeywords: [admin, dashboard, console, manage]
+  - id: login_detected
+    name: Login surface detected
+    enabled: true
+    entityTypes: [http_service]
+    category: login
+    reasonTag: login_detected
+    scoreDelta: 6
+    confidence: 80
+    match:
+      pathKeywords: [login, signin, sign-in, auth, sso]
+      titleKeywords: [login, signin, sign-in, auth, sso]
+  - id: upload_detected
+    name: Upload surface detected
+    enabled: true
+    entityTypes: [http_service]
+    category: upload
+    reasonTag: upload_detected
+    scoreDelta: 7
+    confidence: 80
+    match:
+      pathKeywords: [upload, import, file]
+      titleKeywords: [upload, import, file]
+  - id: download_export_detected
+    name: Download or export surface detected
+    enabled: true
+    entityTypes: [http_service]
+    category: download_export
+    reasonTag: download_export_detected
+    scoreDelta: 6
+    confidence: 75
+    match:
+      pathKeywords: [download, export, report, invoice, csv, xlsx, pdf]
+      titleKeywords: [download, export, report, invoice, csv, xlsx, pdf]
+  - id: billing_payment_detected
+    name: Billing or payment surface detected
+    enabled: true
+    entityTypes: [http_service]
+    category: billing_payment
+    reasonTag: billing_payment_detected
+    scoreDelta: 8
+    confidence: 80
+    match:
+      pathKeywords: [billing, payment, invoice, subscription, checkout]
+      titleKeywords: [billing, payment, invoice, subscription, checkout]
+  - id: staging_keyword
+    name: Development environment keyword
+    enabled: true
+    entityTypes: [asset, http_service]
+    category: staging_dev
+    reasonTag: staging_keyword
+    scoreDelta: 8
+    confidence: 75
+    match:
+      hostKeywords: [dev, stage, staging, uat, qa, test, sandbox]
+      pathKeywords: [dev, stage, staging, uat, qa, test, sandbox]
+      titleKeywords: [dev, stage, staging, uat, qa, test, sandbox]
+  - id: debug_error_detected
+    name: Debug or error surface detected
+    enabled: true
+    entityTypes: [http_service]
+    category: debug_error
+    reasonTag: debug_error_detected
+    scoreDelta: 7
+    confidence: 80
+    match:
+      pathKeywords: [debug, trace, error, exception, logs]
+      titleKeywords: [debug, trace, error, exception, logs]
+  - id: storage_bucket_detected
+    name: Storage surface detected
+    enabled: true
+    entityTypes: [asset, http_service]
+    category: storage_bucket
+    reasonTag: storage_bucket_detected
+    scoreDelta: 8
+    confidence: 75
+    match:
+      hostKeywords: [s3, bucket, storage, blob, files]
+      pathKeywords: [s3, bucket, storage, blob, files]
+      titleKeywords: [s3, bucket, storage, blob, files]
+  - id: interesting_403
+    name: Authentication boundary response
+    enabled: true
+    entityTypes: [http_service]
+    category: unknown
+    reasonTag: interesting_403
+    scoreDelta: 3
+    confidence: 50
+    match:
+      statusCodes: [401, 403]
+  - id: server_error
+    name: Server error response
+    enabled: true
+    entityTypes: [http_service]
+    category: debug_error
+    reasonTag: server_error
+    scoreDelta: 4
+    confidence: 50
+    match:
+      statusCodes: [500, 502, 503]
+  - id: unusual_port
+    name: Unusual web port
+    enabled: true
+    entityTypes: [http_service]
+    category: unknown
+    reasonTag: unusual_port
+    scoreDelta: 3
+    confidence: 50
+    match:
+      ports: [3000, 3001, 5000, 5001, 7001, 8000, 8080, 8081, 8088, 8443, 8888, 9000, 9001, 9090, 9200, 9443, 15672, 30000, 30001]
+  - id: static_cdn
+    name: Static or CDN surface
+    enabled: true
+    entityTypes: [asset, http_service]
+    category: static_cdn
+    reasonTag: static_cdn
+    scoreDelta: -3
+    confidence: 75
+    match:
+      hostKeywords: [cdn, static, assets]
+      pathKeywords: [cdn, static, assets]
+      titleKeywords: [cdn, static, assets]
+  - id: parked_detected
+    name: Parked domain detected
+    enabled: true
+    entityTypes: [http_service]
+    category: parked
+    reasonTag: parked_detected
+    scoreDelta: -10
+    confidence: 90
+    match:
+      titleKeywords: [parked, domain for sale, coming soon]

@@ -100,3 +100,28 @@ export const FULL_DEEP_RECON_STAGES = [
   "nuclei_safe",
   "secret_scan",
 ] as const;
+
+export const RECON_MVP_TOOL_NAMES = ["subfinder", "dnsx", "httpx"] as const;
+
+export const ASSET_TYPES = ["root_domain", "subdomain", "host", "ip", "service"] as const;
+
+export const CATEGORIES = [
+  "login", "auth", "admin_dashboard", "api", "swagger_openapi", "graphql",
+  "upload", "download_export", "billing_payment", "team_invite_role", "staging_dev",
+  "debug_error", "storage_bucket", "static_cdn", "parked", "unknown",
+] as const;
+
+export const REASON_TAGS = [
+  "new_asset", "live_host", "api_host", "graphql_detected", "swagger_detected",
+  "admin_detected", "login_detected", "auth_detected", "upload_detected",
+  "download_export_detected", "billing_payment_detected", "staging_keyword",
+  "debug_error_detected", "storage_bucket_detected", "interesting_403", "server_error",
+  "unusual_port", "sensitive_path", "dev_tech_detected", "duplicate_fingerprint",
+  "parked_detected", "static_cdn",
+] as const;
+
+export const PRIORITY_THRESHOLDS = {
+  P1: 15,
+  P2: 8,
+  Monitor: 3,
+} as const;

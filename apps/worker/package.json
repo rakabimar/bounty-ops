@@ -14,7 +14,8 @@
     "@bountyops/shared": "workspace:*",
     "bullmq": "latest",
     "dotenv": "latest",
-    "ioredis": "latest"
+    "ioredis": "latest",
+    "yaml": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",

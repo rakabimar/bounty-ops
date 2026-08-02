@@ -17,7 +17,9 @@
     "infra:up": "docker compose --env-file .env -f infra/docker-compose.local.yml up -d",
     "infra:down": "docker compose --env-file .env -f infra/docker-compose.local.yml down",
     "infra:config": "docker compose --env-file .env -f infra/docker-compose.local.yml config",
-    "smoke:phase5": "pnpm --filter @bountyops/api smoke:phase5"
+    "smoke:phase5": "pnpm --filter @bountyops/api smoke:phase5",
+    "smoke:phase6": "pnpm --filter @bountyops/api smoke:phase6",
+    "smoke:phase7": "pnpm --filter @bountyops/api smoke:phase7"
   },
   "devDependencies": {
     "turbo": "^2.5.5"

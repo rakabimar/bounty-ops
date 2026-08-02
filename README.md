@@ -268,3 +268,94 @@ Expected lifecycle statuses are `queued`, `running`, `success`, `failed`,
 `cancelled`, and `blocked`. Manual-approval types require `manualApproved: true`.
 The Recon Jobs page exposes the same simulated queue flow in HTTP mode; the
 existing mock mode remains available.
+
+## Phase 6 recon MVP
+
+Phase 6 replaces simulation only for `subdomain_enum`, `dns_resolve`,
+`http_probe`, and the first three stages of `full_deep_recon`. The worker uses
+subfinder, dnsx, and httpx respectively. Every active target is checked again
+against the program scope before execution; out-of-scope discoveries are never
+passed to dnsx or httpx. Other job types remain explicitly simulated.
+
+Install the ProjectDiscovery tools and ensure their binaries are in `PATH`:
+
+```sh
+go install -v github.com/projectdiscovery/subfinder/v2/cmd/subfinder@latest
+go install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest
+go install -v github.com/projectdiscovery/httpx/cmd/httpx@latest
+```
+
+On Windows, add the Go bin directory (normally `%USERPROFILE%\go\bin`) to
+`PATH`. Missing tools do not prevent the API or worker from starting: the job
+and ToolRun fail with a clear tool-missing message. Check availability with:
+
+```sh
+curl -b cookies.txt http://localhost:3000/tools/health
+```
+
+Raw stdout/stderr are written under
+`data/artifacts/{programId}/{jobRunId}/{toolName}/` and gzip-compressed after a
+successful run. Parsed assets are available from `/assets`; DNS and HTTP detail
+routes live under `/assets/:assetId`, and live services are available from
+`/http-services`. The Asset Inventory and Live Hosts frontend pages use these
+real endpoints in HTTP mode.
+
+The safe automated smoke test never runs recon by default:
+
+```sh
+pnpm smoke:phase6
+```
+
+It checks tool availability, protected inventory endpoints, Scope Guard queue
+blocking, and graceful missing-tool failure. Real recon runs only when you
+explicitly provide a target you are authorized to test:
+
+```sh
+BOUNTYOPS_SMOKE_RECON_TARGET=authorized.example pnpm smoke:phase6
+```
+
+In PowerShell use `$env:BOUNTYOPS_SMOKE_RECON_TARGET="authorized.example"`
+before running the command. Never set this variable to a target you do not own
+or have explicit permission to assess. Phase 6 does not implement naabu,
+katana, nuclei, ffuf, archive URL collection, secret scanning, or exploitation.
+
+## Phase 7 categorization and scoring
+
+Phase 7 turns stored recon metadata into a manual-review priority; it does not
+run or add any recon tool. The worker evaluates assets and HTTP services against
+[`configs/scoring-rules.yaml`](configs/scoring-rules.yaml), persists matched
+rules as `ScoreEvent` history, and stores categories as entity classifications.
+Reason tags make each score explainable.
+
+Priority thresholds are `P1` at 15 or higher, `P2` from 8 through 14,
+`Monitor` from 3 through 7, and `Low` at 2 or lower. Asset aggregation uses the
+maximum related HTTP-service score, not a sum. A manual score from 0 to 100
+overrides the automatic score until cleared; the automatic history remains.
+Stable HTTP metadata also produces title and content fingerprints so duplicate
+fingerprints can be surfaced without automatically ignoring them.
+
+The Scoring Rules page edits YAML and calls the same evaluator used by the
+worker for preview. The API validates the structure and regular expressions
+before saving, then creates a timestamped
+`configs/scoring-rules.backup.*.yaml`. Asset Inventory exposes category,
+reason-tag, priority, minimum-score, and manual-override filters plus a real
+“Why this score?” drawer. Manual Review lists actionable, in-scope assets.
+
+After logging in, verify the API with:
+
+```sh
+curl -b cookies.txt "http://localhost:3000/assets?programId=PROGRAM_ID&minScore=8"
+curl -b cookies.txt http://localhost:3000/assets/ASSET_ID/score-explanation
+curl -b cookies.txt -X PATCH http://localhost:3000/assets/ASSET_ID/manual-score \
+  -H "content-type: application/json" -d '{"manualScore":18}'
+curl -b cookies.txt http://localhost:3000/scoring/rules
+curl -b cookies.txt -X POST http://localhost:3000/scoring/preview \
+  -H "content-type: application/json" \
+  -d '{"entityType":"http_service","host":"api-staging.local.invalid","url":"https://api-staging.local.invalid/graphql","title":"GraphQL Playground","statusCode":200,"port":443,"technologies":["GraphQL","Express"]}'
+curl -b cookies.txt "http://localhost:3000/manual-review/queue?programId=PROGRAM_ID&minScore=8"
+```
+
+`pnpm smoke:phase7` inserts only controlled `.invalid` records directly into
+the local database, verifies scoring, explanations, overrides, and review
+ordering, then removes the fixture. It performs no DNS, HTTP, or public-target
+recon.

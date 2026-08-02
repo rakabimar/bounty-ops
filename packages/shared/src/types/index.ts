@@ -231,6 +231,224 @@ export interface JobQueueHealthDto {
 }
 
 export type ScopeStatus = "in_scope" | "out_of_scope" | "unknown";
+export type AssetType = "root_domain" | "subdomain" | "host" | "ip" | "service";
+export type ToolName = "subfinder" | "dnsx" | "httpx";
+export type EntityType = "asset" | "http_service" | "url" | "endpoint" | "scanner_finding" | "js_file" | "secret_candidate" | "job";
+export type Category = "login" | "auth" | "admin_dashboard" | "api" | "swagger_openapi" | "graphql" | "upload" | "download_export" | "billing_payment" | "team_invite_role" | "staging_dev" | "debug_error" | "storage_bucket" | "static_cdn" | "parked" | "unknown";
+export type ReasonTag = "new_asset" | "live_host" | "api_host" | "graphql_detected" | "swagger_detected" | "admin_detected" | "login_detected" | "auth_detected" | "upload_detected" | "download_export_detected" | "billing_payment_detected" | "staging_keyword" | "debug_error_detected" | "storage_bucket_detected" | "interesting_403" | "server_error" | "unusual_port" | "sensitive_path" | "dev_tech_detected" | "duplicate_fingerprint" | "parked_detected" | "static_cdn";
+
+export interface ScoringRuleMatch {
+  hostKeywords?: string[];
+  pathKeywords?: string[];
+  titleKeywords?: string[];
+  techKeywords?: string[];
+  statusCodes?: number[];
+  ports?: number[];
+  contentTypeKeywords?: string[];
+  urlRegex?: string;
+}
+
+export interface ScoringRuleDto {
+  id: string;
+  name: string;
+  enabled: boolean;
+  entityTypes: EntityType[];
+  category: Category;
+  reasonTag: ReasonTag;
+  scoreDelta: number;
+  confidence: number;
+  match: ScoringRuleMatch;
+  notes?: string;
+}
+
+export interface ScoringConfigDto {
+  version: number;
+  priorityThresholds: { P1: number; P2: number; Monitor: number };
+  rules: ScoringRuleDto[];
+  rawYaml?: string;
+}
+
+export interface ScoringPreviewRequest {
+  entityType: EntityType;
+  host?: string;
+  url?: string;
+  path?: string;
+  title?: string;
+  statusCode?: number;
+  port?: number;
+  technologies?: string[];
+  contentType?: string;
+  isNew?: boolean;
+  duplicateFingerprint?: boolean;
+}
+
+export interface ScoreEventDto {
+  id?: string;
+  ruleId: string | null;
+  ruleName: string | null;
+  reasonTag: ReasonTag;
+  scoreDelta: number;
+  matched: boolean;
+  evidence: Record<string, unknown> | null;
+  source?: string;
+  createdAt?: string;
+}
+
+export interface EntityClassificationDto {
+  id: string;
+  programId: string;
+  entityType: EntityType;
+  entityId: string;
+  category: Category;
+  confidence: number;
+  source: string;
+  evidence: Record<string, unknown> | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ScoringPreviewResponse {
+  categories: Category[];
+  reasonTags: ReasonTag[];
+  scoreEvents: ScoreEventDto[];
+  autoScore: number;
+  priority: Priority;
+  confidence: number;
+}
+
+export interface ScoreExplanationDto {
+  entityType: "asset";
+  entityId: string;
+  autoScore: number;
+  manualScore: number | null;
+  finalScore: number;
+  priority: Priority;
+  confidence: number;
+  categories: Category[];
+  reasonTags: ReasonTag[];
+  events: ScoreEventDto[];
+}
+
+export interface ManualScoreOverrideRequest { manualScore: number | null }
+
+export interface SubfinderResult {
+  host: string;
+  source?: string;
+}
+
+export interface DnsxResult {
+  host: string;
+  records: Array<{ type: "A" | "AAAA" | "CNAME"; value: string; ttl?: number }>;
+  resolver?: string;
+}
+
+export interface HttpxResult {
+  url: string;
+  normalizedUrl: string;
+  host: string;
+  scheme?: string;
+  port?: number;
+  statusCode?: number;
+  title?: string;
+  webserver?: string;
+  technologies: string[];
+  contentLength?: number;
+  responseTimeMs?: number;
+  contentType?: string;
+  location?: string;
+  cdnName?: string;
+  failed: boolean;
+}
+
+export interface AssetDto {
+  id: string;
+  programId: string;
+  type: AssetType;
+  value: string;
+  normalizedValue: string;
+  parentAssetId: string | null;
+  scopeStatus: ScopeStatus;
+  status: AssetStatus;
+  autoScore: number;
+  manualScore: number | null;
+  finalScore: number;
+  priority: Priority;
+  confidence: number;
+  categories: string[] | null;
+  reasonTags: string[] | null;
+  sourceTools: ToolName[] | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  lastChangedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DnsRecordDto {
+  id: string;
+  programId: string;
+  assetId: string | null;
+  host: string;
+  recordType: string;
+  value: string;
+  ttl: number | null;
+  resolver: string | null;
+  sourceTool: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+}
+
+export interface HttpServiceDto {
+  id: string;
+  programId: string;
+  assetId: string | null;
+  url: string;
+  normalizedUrl: string;
+  scheme: string | null;
+  host: string;
+  port: number | null;
+  statusCode: number | null;
+  title: string | null;
+  webserver: string | null;
+  technologies: string[] | null;
+  contentLength: number | null;
+  responseTimeMs: number | null;
+  contentType: string | null;
+  location: string | null;
+  cdnName: string | null;
+  titleHash?: string | null;
+  fingerprintHash?: string | null;
+  failed: boolean;
+  sourceTool: string;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  createdAt: string;
+  updatedAt: string;
+  asset?: AssetDto | null;
+}
+
+export interface AssetInventoryFilters {
+  programId?: string;
+  type?: AssetType;
+  status?: AssetStatus;
+  scopeStatus?: ScopeStatus;
+  search?: string;
+  minScore?: number;
+  category?: Category;
+  reasonTag?: ReasonTag;
+  priority?: Priority;
+  hasManualScore?: boolean;
+  limit?: number;
+}
+
+export interface LiveHostFilters {
+  programId?: string;
+  host?: string;
+  statusCode?: number;
+  search?: string;
+  minScore?: number;
+  limit?: number;
+}
 
 export interface ApiResponse<T> {
   data: T;

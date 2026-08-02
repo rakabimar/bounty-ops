@@ -1,14 +1,55 @@
 tools:
-  - subfinder
-  - dnsx
-  - httpx
-  - naabu
-  - katana
-  - nuclei
-  - amass
-  - assetfinder
-  - gau
-  - waybackurls
-  - ffuf
-  - trufflehog
-  - gitleaks
+  - name: subfinder
+    binary: subfinder
+    enabled: true
+    stage: passive
+    defaultArgs: ["-all", "-recursive", "-silent", "-json"]
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: false
+    notes: Passive subdomain enumeration for the Phase 6 MVP.
+  - name: dnsx
+    binary: dnsx
+    enabled: true
+    stage: active_light
+    defaultArgs: ["-silent", "-json", "-a", "-aaaa", "-cname", "-resp"]
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: true
+    notes: DNS validation and record enrichment for in-scope hosts only.
+  - name: httpx
+    binary: httpx
+    enabled: true
+    stage: active_light
+    defaultArgs: ["-silent", "-json", "-title", "-tech-detect", "-status-code", "-content-length", "-response-time", "-follow-redirects"]
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: true
+    notes: HTTP probing for Scope Guard-approved targets; required headers are injected.
+  - name: naabu
+    binary: naabu
+    enabled: false
+    stage: active_medium
+    defaultArgs: []
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: true
+    notes: Deferred beyond Phase 6.
+  - name: katana
+    binary: katana
+    enabled: false
+    stage: active_medium
+    defaultArgs: []
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: true
+    notes: Deferred beyond Phase 6.
+  - name: nuclei
+    binary: nuclei
+    enabled: false
+    stage: active_medium
+    defaultArgs: []
+    outputFormat: jsonl
+    supportsJson: true
+    supportsStdin: true
+    notes: Deferred beyond Phase 6.
