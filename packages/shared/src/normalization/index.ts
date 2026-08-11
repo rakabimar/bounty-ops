@@ -42,12 +42,12 @@ export function parseNormalizedUrl(value: string): NormalizedUrlParts {
     parsed.hostname = normalizeHost(parsed.hostname);
     parsed.hash = "";
     if ((parsed.protocol === "http:" && parsed.port === "80") || (parsed.protocol === "https:" && parsed.port === "443")) parsed.port = "";
-    const entries = [...parsed.searchParams.entries()].sort(([leftKey, leftValue], [rightKey, rightValue]) => leftKey.localeCompare(rightKey) || leftValue.localeCompare(rightValue));
+    const queryParamKeys = [...new Set([...parsed.searchParams.keys()])].sort();
     parsed.search = "";
-    for (const [key, entryValue] of entries) parsed.searchParams.append(key, entryValue);
+    for (const key of queryParamKeys) parsed.searchParams.append(key, "");
     parsed.pathname = normalizePath(parsed.pathname);
     const normalizedUrl = parsed.pathname === "/" && !parsed.search ? parsed.toString().replace(/\/$/, "") : parsed.toString();
-    return { input, normalizedUrl, scheme: parsed.protocol.replace(/:$/, ""), host: parsed.hostname, port: parsed.port ? Number(parsed.port) : inferPortFromUrl(parsed.toString()), path: parsed.pathname, queryParamKeys: [...new Set(entries.map(([key]) => key))] };
+    return { input, normalizedUrl, scheme: parsed.protocol.replace(/:$/, ""), host: parsed.hostname, port: parsed.port ? Number(parsed.port) : inferPortFromUrl(parsed.toString()), path: parsed.pathname, queryParamKeys };
   } catch {
     const fallback = input.toLowerCase().replace(/#.*$/, "");
     return { input, normalizedUrl: fallback, scheme: null, host: normalizeHost(fallback.split(/[/:?]/)[0] ?? fallback), port: null, path: normalizePath(fallback.includes("/") ? fallback.slice(fallback.indexOf("/")) : "/"), queryParamKeys: [] };

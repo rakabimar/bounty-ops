@@ -11,6 +11,8 @@
     "smoke:phase7": "tsx scripts/phase7-smoke.ts",
     "smoke:phase8": "tsx scripts/phase8-smoke.ts",
     "smoke:phase9": "tsx scripts/phase9-smoke.ts",
+    "smoke:phase10": "tsx scripts/phase10-smoke.ts",
+    "smoke:phase11": "tsx scripts/phase11-smoke.ts",
     "lint": "echo \"No API lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },
@@ -27,11 +29,13 @@
     "fastify-plugin": "latest",
     "ipaddr.js": "latest",
     "ioredis": "latest",
+    "luxon": "latest",
     "yaml": "latest",
     "zod": "latest"
   },
   "devDependencies": {
     "@types/node": "latest",
+    "@types/luxon": "latest",
     "tsx": "latest",
     "typescript": "latest"
   }

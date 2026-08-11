@@ -11,7 +11,7 @@ import { executeReconMvp } from "./services/recon-pipeline.service.js";
 const delay = (milliseconds: number) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 function safeError(error: unknown): string {
-  return error instanceof Error ? error.message.slice(0, 500) : "Simulated job failed";
+  return error instanceof Error ? error.message.slice(0, 500) : "Job failed";
 }
 
 function parseLogs(value: Prisma.JsonValue | null): JobLogEntry[] {
@@ -77,7 +77,7 @@ async function processJob(queueJob: QueueJob<ReconQueueJobData>): Promise<void> 
     });
     if (!mvpResult) {
       await delay(500);
-      logs.push(entry(`${data.type} is not implemented in Phase 6; simulated execution completed`, "info", { simulated: true }));
+      logs.push(entry(`${data.type} is not implemented in Phase 10; simulated execution completed`, "info", { simulated: true }));
     }
 
     const latest = await prisma.job.findUnique({ where: { id: record.id }, select: { status: true } });
@@ -94,7 +94,7 @@ async function processJob(queueJob: QueueJob<ReconQueueJobData>): Promise<void> 
       prisma.jobRun.update({ where: { id: run.id }, data: { status: "success", finishedAt, durationMs: finishedAt.getTime() - startedAt.getTime(), logs: logs as unknown as Prisma.InputJsonValue, resultSummary: resultSummary as Prisma.InputJsonValue } }),
       prisma.job.update({ where: { id: record.id }, data: { status: "success", error: null } }),
     ]);
-    await audit(data, "job.completed", { simulated: !mvpResult });
+    await audit(data, "job.completed", { simulated: !mvpResult, resultSummary });
   } catch (error) {
     const message = safeError(error);
     const finishedAt = new Date();
@@ -105,6 +105,8 @@ async function processJob(queueJob: QueueJob<ReconQueueJobData>): Promise<void> 
       prisma.job.update({ where: { id: record.id }, data: { status: "failed", error: message } }),
     ]);
     await audit(data, "job.failed", { error: message });
+    const existingEvent = await prisma.notificationEvent.findFirst({ where: { eventType: "job_failed", entityType: "job", entityId: data.jobId, metadata: { path: ["jobRunId"], equals: data.jobRunId } } });
+    if (!existingEvent) await prisma.notificationEvent.create({ data: { programId: data.programId, eventType: "job_failed", entityType: "job", entityId: data.jobId, importance: data.type === "full_deep_recon" ? "high" : "medium", title: "Recon job failed", message: `${data.type} failed: ${message}`, metadata: { jobRunId: data.jobRunId, type: data.type } } });
     throw error;
   }
 }

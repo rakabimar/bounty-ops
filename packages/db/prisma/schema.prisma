@@ -46,6 +46,8 @@ model Program {
   evidenceItems       EvidenceItem[]
   jobs                Job[]
   scopeGuardChecks    ScopeGuardCheck[]
+  reconSnapshots      ReconSnapshot[]
+  reconSchedules      ReconSchedule[]
 }
 
 model ProgramScope {
@@ -627,4 +629,106 @@ model ScopeGuardCheck {
   @@index([decision])
   @@index([jobType])
   @@index([createdAt])
+}
+
+model ReconSnapshot {
+  id            String             @id @default(cuid())
+  programId     String
+  program       Program            @relation(fields: [programId], references: [id], onDelete: Cascade)
+  jobId         String?
+  jobRunId      String?
+  stage         String
+  status        String
+  startedAt     DateTime
+  completedAt   DateTime?
+  observedCount Int                @default(0)
+  comparable    Boolean            @default(false)
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  observations  ReconObservation[]
+
+  @@index([programId])
+  @@index([stage])
+  @@index([status])
+  @@index([completedAt])
+  @@index([jobRunId])
+}
+
+model ReconObservation {
+  id          String        @id @default(cuid())
+  snapshotId  String
+  snapshot    ReconSnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  programId   String
+  entityType  String
+  entityId    String?
+  stableKey   String
+  fingerprint String?
+  metadata    Json?
+  createdAt   DateTime      @default(now())
+
+  @@unique([snapshotId, entityType, stableKey])
+  @@index([programId])
+  @@index([entityType])
+  @@index([stableKey])
+  @@index([snapshotId])
+}
+
+model ReconDiffBatch {
+  id                 String   @id @default(cuid())
+  programId          String
+  stage              String
+  previousSnapshotId String?
+  currentSnapshotId  String
+  addedCount         Int      @default(0)
+  changedCount       Int      @default(0)
+  removedCount       Int      @default(0)
+  importance         String   @default("low")
+  summary            Json?
+  createdAt          DateTime @default(now())
+
+  @@index([programId])
+  @@index([stage])
+  @@index([createdAt])
+}
+
+model NotificationEvent {
+  id          String    @id @default(cuid())
+  programId   String?
+  eventType   String
+  entityType  String?
+  entityId    String?
+  importance  String    @default("low")
+  title       String
+  message     String
+  metadata    Json?
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  deliveredAt DateTime?
+
+  @@index([programId])
+  @@index([eventType])
+  @@index([importance])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ReconSchedule {
+  id              String    @id @default(cuid())
+  programId       String
+  program         Program   @relation(fields: [programId], references: [id], onDelete: Cascade)
+  name            String
+  jobType         String    @default("full_deep_recon")
+  enabled         Boolean   @default(true)
+  frequency       String
+  timeOfDay       String?
+  timezone        String    @default("UTC")
+  config          Json?
+  lastTriggeredAt DateTime?
+  nextRunAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([programId])
+  @@index([enabled])
+  @@index([nextRunAt])
 }

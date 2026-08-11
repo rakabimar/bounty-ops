@@ -6,6 +6,7 @@ export interface WorkerPolicy {
   rateLimitRps: number;
   maxConcurrency: number;
   requiredHeaders: Array<{ name: string; value: string }>;
+  outOfScopeRegexes: string[];
   allows(target: string, active: boolean): { allowed: boolean; reason: string };
 }
 
@@ -34,6 +35,7 @@ export async function loadWorkerPolicy(programId: string): Promise<WorkerPolicy>
     rateLimitRps,
     maxConcurrency,
     requiredHeaders: program.headers.filter((header) => header.isRequired).map((header) => ({ name: header.name, value: header.value })),
+    outOfScopeRegexes: program.scopes.filter((scope) => !scope.isInScope).map((scope) => scopeRegex(scope.asset, scope.assetType)),
     allows(target, active) {
       if (program.status !== "active") return { allowed: false, reason: "program_not_active" };
       if (program.huntingStatus !== "ongoing") return { allowed: false, reason: "hunting_not_ongoing" };
@@ -44,4 +46,12 @@ export async function loadWorkerPolicy(programId: string): Promise<WorkerPolicy>
       return inside ? { allowed: true, reason: "target_in_scope" } : { allowed: false, reason: "no_matching_in_scope_rule" };
     },
   };
+}
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function scopeRegex(asset: string, type: string): string {
+  const trimmed = asset.trim();
+  if ((type === "url" || type === "api") && trimmed.includes("://")) return `^${escapeRegex(normalizeUrl(trimmed)).replace(/\/$/, "")}(?:/|$)`;
+  const host = normalizeHostname(trimmed.replace(/^\*\./, ""));
+  return type === "wildcard_domain" ? `^https?://(?:[^/]+\\.)+${escapeRegex(host)}(?::\\d+)?(?:/|$)` : `^https?://${escapeRegex(host)}(?::\\d+)?(?:/|$)`;
 }

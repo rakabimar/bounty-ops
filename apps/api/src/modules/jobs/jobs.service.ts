@@ -33,18 +33,57 @@ function representativeTarget(asset: string, assetType: string): string {
   return trimmed;
 }
 
+function configuredTargets(config: unknown): string[] {
+  if (!config || typeof config !== "object" || Array.isArray(config)) return [];
+  const object = config as Record<string, unknown>;
+  const values = Array.isArray(object.targets) ? object.targets : Array.isArray(object.hosts) ? object.hosts : [];
+  return values.filter((value): value is string => typeof value === "string" && Boolean(value.trim())).map((value) => value.trim());
+}
+
+async function guardTargets(prisma: PrismaClient, input: CreateJobRequest, userId: string) {
+  const resolved = await resolveJobTarget(prisma, input);
+  const targets = [...new Set([resolved.guardTarget, ...configuredTargets(input.config)])];
+  const stage = RECON_JOB_DEFAULT_STAGES[input.type];
+  const decisions: ScopeGuardPreflightResult[] = [];
+  for (const target of targets) {
+    decisions.push(await evaluateScopeGuard(prisma, { programId: input.programId, target, jobType: input.type, stage, manualApproved: input.manualApproved ?? false }, { userId }));
+  }
+  const blocked = decisions.filter((decision) => !decision.allowed);
+  const decision: ScopeGuardPreflightResult | Record<string, unknown> = decisions.length === 1
+    ? decisions[0]!
+    : {
+        decision: blocked.length ? "blocked" : decisions.some((item) => item.decision === "limited") ? "limited" : "allowed",
+        allowed: blocked.length === 0,
+        programId: input.programId,
+        target: resolved.guardTarget,
+        normalizedTarget: decisions[0]?.normalizedTarget,
+        jobType: input.type,
+        stage,
+        manualApprovalRequired: decisions.some((item) => item.manualApprovalRequired),
+        reasons: blocked.length ? blocked.flatMap((item) => item.reasons.map((reason) => `${item.target}: ${reason}`)) : ["all_targets_allowed"],
+        targets: decisions.map((item) => ({ target: item.target, decision: item.decision, allowed: item.allowed, reasons: item.reasons })),
+      };
+  return { resolved, stage, decision, allowed: blocked.length === 0, decisions };
+}
+
 export async function resolveJobTarget(
   prisma: PrismaClient,
   input: CreateJobRequest,
 ): Promise<{ storedTarget?: string; guardTarget: string }> {
   if (input.target?.trim()) return { storedTarget: input.target.trim(), guardTarget: input.target.trim() };
   if (input.config && typeof input.config === "object" && !Array.isArray(input.config)) {
-    const hosts = (input.config as { hosts?: unknown }).hosts;
-    const first = Array.isArray(hosts) ? hosts.find((value): value is string => typeof value === "string" && Boolean(value.trim())) : undefined;
+    const object = input.config as Record<string, unknown>;
+    const first = configuredTargets(input.config)[0]
+      ?? ([object.target, object.domain].find((value): value is string => typeof value === "string" && Boolean(value.trim())));
     if (first) return { guardTarget: first.trim() };
   }
   if (!OPTIONAL_TARGET_JOB_TYPES.includes(input.type as never)) {
     throw new ApiError(400, "BAD_REQUEST", "target is required for this job type");
+  }
+  if (input.type === "nuclei_safe") {
+    const candidate = await prisma.url.findFirst({ where: { programId: input.programId, scopeStatus: "in_scope" }, orderBy: { finalScore: "desc" }, select: { url: true } })
+      ?? await prisma.httpService.findFirst({ where: { programId: input.programId, failed: false }, orderBy: { lastSeenAt: "desc" }, select: { url: true } });
+    if (candidate) return { guardTarget: candidate.url };
   }
   const scope = await prisma.programScope.findFirst({
     where: { programId: input.programId, isInScope: true },
@@ -75,20 +114,11 @@ export async function createQueuedJob(
 ) {
   const program = await prisma.program.findUnique({ where: { id: input.programId }, select: { id: true } });
   if (!program) throw new ApiError(404, "NOT_FOUND", "Program not found");
-  const target = await resolveJobTarget(prisma, input);
-  const stage = RECON_JOB_DEFAULT_STAGES[input.type];
-  const decision = await evaluateScopeGuard(
-    prisma,
-    {
-      programId: input.programId,
-      target: target.guardTarget,
-      jobType: input.type,
-      stage,
-      manualApproved: input.manualApproved ?? false,
-    },
-    { userId },
-  );
-  const status = decision.allowed ? "queued" : "blocked";
+  const guard = await guardTargets(prisma, input, userId);
+  const target = guard.resolved;
+  const stage = guard.stage;
+  const decision = guard.decision;
+  const status = guard.allowed ? "queued" : "blocked";
   const job = await prisma.job.create({
     data: {
       programId: input.programId,
@@ -106,8 +136,8 @@ export async function createQueuedJob(
           type: input.type,
           status,
           logs: initialLog(
-            decision.allowed ? "Job queued after Scope Guard validation" : "Job blocked by Scope Guard",
-            decision.allowed ? "info" : "warn",
+            guard.allowed ? "Job queued after Scope Guard validation" : "Job blocked by Scope Guard",
+            guard.allowed ? "info" : "warn",
           ),
         },
       },
@@ -119,7 +149,7 @@ export async function createQueuedJob(
   await createAuditLog(prisma, {
     userId,
     programId: input.programId,
-    action: decision.allowed ? "job.queued" : "job.blocked",
+    action: guard.allowed ? "job.queued" : "job.blocked",
     entityType: "job",
     entityId: job.id,
     metadata: asJson({
@@ -127,13 +157,13 @@ export async function createQueuedJob(
       target: target.storedTarget ?? null,
       scopeGuardTarget: target.guardTarget,
       stage,
-      decision: decision.decision,
-      reasons: decision.reasons,
+      decision: "decision" in decision ? decision.decision : "blocked",
+      reasons: "reasons" in decision ? decision.reasons : [],
       jobRunId: run.id,
     }),
   });
 
-  if (!decision.allowed) return job;
+  if (!guard.allowed) return job;
   try {
     await enqueueRun(queue, {
       jobId: job.id,

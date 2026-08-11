@@ -84,24 +84,26 @@ export const RECON_QUEUE_NAME = "recon-jobs" as const;
 export const OPTIONAL_TARGET_JOB_TYPES = [
   "program_sync",
   "subdomain_enum",
-  "url_archive",
+  "nuclei_safe",
   "full_deep_recon",
 ] as const;
 
 export const FULL_DEEP_RECON_STAGES = [
-  "program_sync",
   "subdomain_enum",
   "dns_resolve",
   "http_probe",
-  "tls_enrichment",
-  "port_discovery",
   "url_archive",
   "crawl",
   "nuclei_safe",
-  "secret_scan",
 ] as const;
 
 export const RECON_MVP_TOOL_NAMES = ["subfinder", "dnsx", "httpx"] as const;
+export const RECON_PHASE_10_TOOL_NAMES = ["gau", "waybackurls", "katana", "nuclei"] as const;
+export const RECON_TOOL_NAMES = [...RECON_MVP_TOOL_NAMES, ...RECON_PHASE_10_TOOL_NAMES] as const;
+
+export const NUCLEI_SAFE_ALLOWED_TAGS = ["exposure", "misconfig", "takeover", "tech", "panel"] as const;
+export const NUCLEI_SAFE_BLOCKED_TAGS = ["dos", "bruteforce", "intrusive", "fuzz", "destructive", "rce", "cve", "oob"] as const;
+export const NUCLEI_SAFE_ALLOWED_SEVERITIES = ["info", "low", "medium", "high", "critical"] as const;
 
 export const ASSET_TYPES = ["root_domain", "subdomain", "host", "ip", "service"] as const;
 
@@ -140,3 +142,17 @@ export const CHECKLIST_ITEM_STATUSES = ["todo", "in_progress", "done", "skipped"
 export const CHECKLIST_PRIORITIES = ["low", "medium", "high"] as const;
 export const CHECKLIST_SOURCES = ["manual", "auto", "template"] as const;
 export const EVIDENCE_TYPES = ["text", "request_response", "screenshot_reference", "file_reference", "command_output", "observation"] as const;
+
+export const RECON_SNAPSHOT_STATUSES = ["running", "success", "partial", "failed", "skipped"] as const;
+export const RECON_DIFF_TYPES = ["added", "changed", "removed", "reappeared"] as const;
+export const CHANGE_IMPORTANCE_VALUES = ["low", "medium", "high", "critical"] as const;
+export const NOTIFICATION_EVENT_STATUSES = ["pending", "delivered", "ignored", "failed"] as const;
+export const RECON_SCHEDULE_FREQUENCIES = ["daily", "every_3_days", "weekly", "manual"] as const;
+export const RECON_CHANGE_TYPES = [
+  "asset_discovered", "asset_reappeared", "asset_not_seen", "dns_record_added", "dns_record_removed",
+  "ip_changed", "cname_changed", "http_service_discovered", "http_service_not_seen",
+  "status_code_changed", "title_changed", "technology_changed", "content_type_changed",
+  "url_discovered", "endpoint_discovered", "endpoint_parameter_added", "scanner_finding_appeared",
+  "scanner_finding_resolved", "scanner_finding_reappeared", "score_changed", "priority_changed",
+  "category_changed",
+] as const;

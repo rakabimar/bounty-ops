@@ -15,6 +15,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated.
 import { Route as AuthenticatedApiEndpointsRouteImport } from './routes/_authenticated.api-endpoints'
 import { Route as AuthenticatedAssetsRouteImport } from './routes/_authenticated.assets'
 import { Route as AuthenticatedAuditLogsRouteImport } from './routes/_authenticated.audit-logs'
+import { Route as AuthenticatedChangesRouteImport } from './routes/_authenticated.changes'
 import { Route as AuthenticatedJobsRouteImport } from './routes/_authenticated.jobs'
 import { Route as AuthenticatedJsFilesRouteImport } from './routes/_authenticated.js-files'
 import { Route as AuthenticatedLiveHostsRouteImport } from './routes/_authenticated.live-hosts'
@@ -65,6 +66,11 @@ const AuthenticatedAssetsRoute = AuthenticatedAssetsRouteImport.update({
 const AuthenticatedAuditLogsRoute = AuthenticatedAuditLogsRouteImport.update({
   id: '/audit-logs',
   path: '/audit-logs',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
+const AuthenticatedChangesRoute = AuthenticatedChangesRouteImport.update({
+  id: '/changes',
+  path: '/changes',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
 const AuthenticatedJobsRoute = AuthenticatedJobsRouteImport.update({
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/api-endpoints': typeof AuthenticatedApiEndpointsRoute
   '/assets': typeof AuthenticatedAssetsRouteWithChildren
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/changes': typeof AuthenticatedChangesRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/js-files': typeof AuthenticatedJsFilesRoute
   '/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -212,6 +219,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/api-endpoints': typeof AuthenticatedApiEndpointsRoute
   '/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/changes': typeof AuthenticatedChangesRoute
   '/jobs': typeof AuthenticatedJobsRoute
   '/js-files': typeof AuthenticatedJsFilesRoute
   '/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -241,6 +249,7 @@ export interface FileRoutesById {
   '/_authenticated/api-endpoints': typeof AuthenticatedApiEndpointsRoute
   '/_authenticated/assets': typeof AuthenticatedAssetsRouteWithChildren
   '/_authenticated/audit-logs': typeof AuthenticatedAuditLogsRoute
+  '/_authenticated/changes': typeof AuthenticatedChangesRoute
   '/_authenticated/jobs': typeof AuthenticatedJobsRoute
   '/_authenticated/js-files': typeof AuthenticatedJsFilesRoute
   '/_authenticated/live-hosts': typeof AuthenticatedLiveHostsRoute
@@ -272,6 +281,7 @@ export interface FileRouteTypes {
     | '/api-endpoints'
     | '/assets'
     | '/audit-logs'
+    | '/changes'
     | '/jobs'
     | '/js-files'
     | '/live-hosts'
@@ -298,6 +308,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/api-endpoints'
     | '/audit-logs'
+    | '/changes'
     | '/jobs'
     | '/js-files'
     | '/live-hosts'
@@ -326,6 +337,7 @@ export interface FileRouteTypes {
     | '/_authenticated/api-endpoints'
     | '/_authenticated/assets'
     | '/_authenticated/audit-logs'
+    | '/_authenticated/changes'
     | '/_authenticated/jobs'
     | '/_authenticated/js-files'
     | '/_authenticated/live-hosts'
@@ -397,6 +409,13 @@ declare module '@tanstack/react-router' {
       path: '/audit-logs'
       fullPath: '/audit-logs'
       preLoaderRoute: typeof AuthenticatedAuditLogsRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
+    '/_authenticated/changes': {
+      id: '/_authenticated/changes'
+      path: '/changes'
+      fullPath: '/changes'
+      preLoaderRoute: typeof AuthenticatedChangesRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
     '/_authenticated/jobs': {
@@ -603,6 +622,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedApiEndpointsRoute: typeof AuthenticatedApiEndpointsRoute
   AuthenticatedAssetsRoute: typeof AuthenticatedAssetsRouteWithChildren
   AuthenticatedAuditLogsRoute: typeof AuthenticatedAuditLogsRoute
+  AuthenticatedChangesRoute: typeof AuthenticatedChangesRoute
   AuthenticatedJobsRoute: typeof AuthenticatedJobsRoute
   AuthenticatedJsFilesRoute: typeof AuthenticatedJsFilesRoute
   AuthenticatedLiveHostsRoute: typeof AuthenticatedLiveHostsRoute
@@ -625,6 +645,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedApiEndpointsRoute: AuthenticatedApiEndpointsRoute,
   AuthenticatedAssetsRoute: AuthenticatedAssetsRouteWithChildren,
   AuthenticatedAuditLogsRoute: AuthenticatedAuditLogsRoute,
+  AuthenticatedChangesRoute: AuthenticatedChangesRoute,
   AuthenticatedJobsRoute: AuthenticatedJobsRoute,
   AuthenticatedJsFilesRoute: AuthenticatedJsFilesRoute,
   AuthenticatedLiveHostsRoute: AuthenticatedLiveHostsRoute,

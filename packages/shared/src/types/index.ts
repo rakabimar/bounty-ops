@@ -232,7 +232,7 @@ export interface JobQueueHealthDto {
 
 export type ScopeStatus = "in_scope" | "out_of_scope" | "unknown";
 export type AssetType = "root_domain" | "subdomain" | "host" | "ip" | "service";
-export type ToolName = "subfinder" | "dnsx" | "httpx";
+export type ToolName = "subfinder" | "dnsx" | "httpx" | "gau" | "waybackurls" | "katana" | "nuclei";
 export type EntityType = "asset" | "http_service" | "dns_record" | "url" | "endpoint" | "scanner_finding" | "js_file" | "secret_candidate" | "job";
 export type Category = "login" | "auth" | "admin_dashboard" | "api" | "swagger_openapi" | "graphql" | "upload" | "download_export" | "billing_payment" | "team_invite_role" | "staging_dev" | "debug_error" | "storage_bucket" | "static_cdn" | "parked" | "unknown";
 export type ReasonTag = "new_asset" | "live_host" | "api_host" | "graphql_detected" | "swagger_detected" | "admin_detected" | "login_detected" | "auth_detected" | "upload_detected" | "download_export_detected" | "billing_payment_detected" | "staging_keyword" | "debug_error_detected" | "storage_bucket_detected" | "interesting_403" | "server_error" | "unusual_port" | "sensitive_path" | "dev_tech_detected" | "duplicate_fingerprint" | "parked_detected" | "static_cdn";
@@ -359,6 +359,49 @@ export interface HttpxResult {
   cdnName?: string;
   failed: boolean;
 }
+
+export interface UrlArchiveResult {
+  url: string;
+  normalizedUrl: string;
+  scheme: string | null;
+  host: string;
+  port: number | null;
+  path: string;
+  queryParamKeys: string[];
+  sourceTool: "gau" | "waybackurls";
+}
+
+export interface KatanaEndpointResult {
+  method: EndpointMethod;
+  path: string;
+  fullUrl: string;
+  normalizedFullUrl: string;
+  statusCode?: number;
+  contentType?: string;
+  parameters: Array<{ name: string; location: "query"; source: "katana" }>;
+}
+
+export interface KatanaResult {
+  urls: Array<Omit<UrlArchiveResult, "sourceTool"> & { sourceTool: "katana"; title?: string; statusCode?: number; contentType?: string; contentLength?: number; technologies?: string[] }>;
+  endpoints: KatanaEndpointResult[];
+  skippedCount: number;
+  warnings: string[];
+}
+
+export interface NucleiFindingResult {
+  templateId?: string;
+  name: string;
+  severity: ScannerFindingSeverity;
+  description?: string;
+  matcher?: string;
+  matchedUrl: string;
+  evidenceSnippet?: string;
+  extractedResults: string[];
+}
+
+export interface UrlUpsertResult { id: string; created: boolean; updated: boolean }
+export interface EndpointUpsertResult { id: string; created: boolean; updated: boolean; parametersCreated: number }
+export interface ScannerFindingUpsertResult { id: string; created: boolean; updated: boolean }
 
 export interface AssetDto {
   id: string;
@@ -636,3 +679,19 @@ export interface ProgramDto {
   rules?: ProgramRulesDto | null;
   headers?: ProgramHeaderDto[];
 }
+
+export type ReconSnapshotStatus = "running" | "success" | "partial" | "failed" | "skipped";
+export type ReconDiffType = "added" | "changed" | "removed" | "reappeared";
+export type ChangeImportance = "low" | "medium" | "high" | "critical";
+export type NotificationEventStatus = "pending" | "delivered" | "ignored" | "failed";
+export type ReconScheduleFrequency = "daily" | "every_3_days" | "weekly" | "manual";
+export type ReconObservationEntityType = "asset" | "dns_record" | "http_service" | "url" | "endpoint" | "scanner_finding";
+
+export interface ReconObservationDto { id: string; snapshotId: string; programId: string; entityType: ReconObservationEntityType; entityId: string | null; stableKey: string; fingerprint: string | null; metadata: Record<string, unknown> | null; createdAt: string }
+export interface ReconSnapshotDto { id: string; programId: string; jobId: string | null; jobRunId: string | null; stage: string; status: ReconSnapshotStatus; startedAt: string; completedAt: string | null; observedCount: number; comparable: boolean; metadata: Record<string, unknown> | null; createdAt: string; observations?: ReconObservationDto[] }
+export interface ReconDiffBatchDto { id: string; programId: string; stage: string; previousSnapshotId: string | null; currentSnapshotId: string; addedCount: number; changedCount: number; removedCount: number; importance: ChangeImportance; summary: Record<string, unknown> | null; createdAt: string; changes?: EntityChangeRecordDto[] }
+export interface NotificationEventDto { id: string; programId: string | null; eventType: string; entityType: string | null; entityId: string | null; importance: ChangeImportance; title: string; message: string; metadata: Record<string, unknown> | null; status: NotificationEventStatus; createdAt: string; deliveredAt: string | null }
+export interface ReconScheduleDto { id: string; programId: string; name: string; jobType: ReconJobType; enabled: boolean; frequency: ReconScheduleFrequency; timeOfDay: string | null; timezone: string; config: Record<string, unknown> | null; lastTriggeredAt: string | null; nextRunAt: string | null; createdAt: string; updatedAt: string }
+export interface EntityChangeRecordDto { id: string; programId: string; entityType: string; entityId: string; type: string; summary: string; oldValue: string | null; newValue: string | null; source: string; importance: ChangeImportance; createdAt: string }
+export interface ReconHistoryDto { jobs: JobRunDto[]; snapshots: ReconSnapshotDto[]; diffBatches: ReconDiffBatchDto[]; changeCounts: Record<string, number> }
+export interface ProgramChangeSummaryDto { totalChanges: number; highImportance: number; criticalImportance: number; newAssets: number; newUrls: number; newEndpoints: number; scannerFindingsAppeared: number; scannerFindingsResolved: number; priorityPromotions: number; groupedByType: Record<string, number> }

@@ -15,6 +15,7 @@ export const SETTING_KEYS = [
   "default.rateLimitRps",
   "default.maxConcurrency",
   "artifact.retentionDays",
+  "recon.snapshotRetentionDays",
 ] as const;
 
 type SettingKey = (typeof SETTING_KEYS)[number];
@@ -32,6 +33,7 @@ const defaultSettings: Record<SettingKey, Prisma.InputJsonValue> = {
   "default.rateLimitRps": env.DEFAULT_RATE_LIMIT_RPS,
   "default.maxConcurrency": env.DEFAULT_MAX_CONCURRENCY,
   "artifact.retentionDays": env.ARTIFACT_RETENTION_DAYS,
+  "recon.snapshotRetentionDays": 90,
 };
 
 function isSettingKey(key: string): key is SettingKey {

@@ -60,6 +60,15 @@ import type {
   CreateEvidenceItemRequest,
   UpdateEntityStatusRequest,
   EvidenceType,
+  ReconScheduleDto,
+  ReconScheduleFrequency,
+  ReconHistoryDto,
+  ReconDiffBatchDto,
+  NotificationEventDto,
+  NotificationEventStatus,
+  ChangeImportance,
+  ProgramChangeSummaryDto,
+  EntityChangeRecordDto,
 } from "@bountyops/shared";
 
 export type {
@@ -123,7 +132,55 @@ export type {
   CreateEvidenceItemRequest,
   UpdateEntityStatusRequest,
   EvidenceType,
+  ReconScheduleDto,
+  ReconScheduleFrequency,
+  ReconHistoryDto,
+  ReconDiffBatchDto,
+  NotificationEventDto,
+  NotificationEventStatus,
+  ChangeImportance,
+  ProgramChangeSummaryDto,
+  EntityChangeRecordDto,
 };
+
+export interface CreateReconScheduleInput {
+  name: string;
+  jobType?: "full_deep_recon";
+  enabled?: boolean;
+  frequency: ReconScheduleFrequency;
+  timeOfDay?: string | null;
+  timezone?: string;
+  config?: Record<string, unknown>;
+}
+export type UpdateReconScheduleInput = Partial<CreateReconScheduleInput>;
+export interface ChangeFilters {
+  programId?: string;
+  entityType?: string;
+  entityId?: string;
+  type?: string;
+  importance?: ChangeImportance;
+  from?: string;
+  to?: string;
+  limit?: number;
+}
+export interface ReconDiffFilters {
+  programId?: string;
+  stage?: string;
+  limit?: number;
+}
+export interface ReconHistoryFilters {
+  stage?: string;
+  from?: string;
+  to?: string;
+  limit?: number;
+}
+export interface NotificationEventFilters {
+  programId?: string;
+  eventType?: string;
+  importance?: ChangeImportance;
+  status?: NotificationEventStatus;
+  limit?: number;
+}
 
 export interface BulkScopeGuardPreflightInput {
   targets: string[];
@@ -243,12 +300,62 @@ export interface AssetDetailResponse {
   scoreExplanation?: ScoreExplanationDto;
 }
 
-export interface CreateUrlInput { programId: string; assetId?: string; httpServiceId?: string; url: string; sourceTools?: string[]; title?: string; statusCode?: number; contentType?: string; technologies?: string[]; }
-export interface CreateEndpointInput { programId: string; assetId?: string; urlId?: string; method: EndpointMethod; path: string; fullUrl: string; statusCode?: number; contentType?: string; authRequired?: AuthRequired; source?: string; parameters?: Array<{ name: string; location: EndpointParameterLocation; exampleValue?: string; source?: string; interesting?: boolean; frequency?: number }>; }
-export interface CreateScannerFindingInput { programId: string; assetId?: string; urlId?: string; endpointId?: string; tool?: ScannerTool; severity?: ScannerFindingSeverity; templateId?: string; name: string; description?: string; matcher?: string; matchedUrl?: string; evidenceSnippet?: string; extractedResults?: unknown[]; }
+export interface CreateUrlInput {
+  programId: string;
+  assetId?: string;
+  httpServiceId?: string;
+  url: string;
+  sourceTools?: string[];
+  title?: string;
+  statusCode?: number;
+  contentType?: string;
+  technologies?: string[];
+}
+export interface CreateEndpointInput {
+  programId: string;
+  assetId?: string;
+  urlId?: string;
+  method: EndpointMethod;
+  path: string;
+  fullUrl: string;
+  statusCode?: number;
+  contentType?: string;
+  authRequired?: AuthRequired;
+  source?: string;
+  parameters?: Array<{
+    name: string;
+    location: EndpointParameterLocation;
+    exampleValue?: string;
+    source?: string;
+    interesting?: boolean;
+    frequency?: number;
+  }>;
+}
+export interface CreateScannerFindingInput {
+  programId: string;
+  assetId?: string;
+  urlId?: string;
+  endpointId?: string;
+  tool?: ScannerTool;
+  severity?: ScannerFindingSeverity;
+  templateId?: string;
+  name: string;
+  description?: string;
+  matcher?: string;
+  matchedUrl?: string;
+  evidenceSnippet?: string;
+  extractedResults?: unknown[];
+}
 
 export interface ToolHealthDto {
-  name: "subfinder" | "dnsx" | "httpx";
+  name:
+    | "subfinder"
+    | "dnsx"
+    | "httpx"
+    | "gau"
+    | "waybackurls"
+    | "katana"
+    | "nuclei";
   available: boolean;
   version: string | null;
   error: string | null;

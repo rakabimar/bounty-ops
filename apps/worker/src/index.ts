@@ -15,8 +15,8 @@ try {
   console.log("Redis connection: ok");
   console.log("Recon queue consumer: ready");
 
-  runtime.worker.on("completed", (job) => console.log(`Simulated job completed: ${job.data.jobId}`));
-  runtime.worker.on("failed", (job, error) => console.error(`Simulated job failed: ${job?.data.jobId ?? "unknown"}: ${error.message}`));
+  runtime.worker.on("completed", (job) => console.log(`Job completed: ${job.data.jobId}`));
+  runtime.worker.on("failed", (job, error) => console.error(`Job failed: ${job?.data.jobId ?? "unknown"}: ${error.message}`));
   runtime.worker.on("error", (error) => console.error(`Worker error: ${error.message}`));
 
   let closing = false;

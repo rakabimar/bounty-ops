@@ -27,6 +27,35 @@ function logs(value: Prisma.JsonValue | null): JobLogEntry[] {
   return value.filter((item) => Boolean(item) && typeof item === "object" && !Array.isArray(item) && typeof (item as { message?: unknown }).message === "string") as unknown as JobLogEntry[];
 }
 
+function phase10Config(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+}
+
+async function validatePhase10Input(app: FastifyInstance, input: CreateJobRequest): Promise<void> {
+  const config = phase10Config(input.config);
+  for (const key of ["targets", "tags", "severity", "tools"] as const) {
+    if (config[key] !== undefined && (!Array.isArray(config[key]) || config[key].length === 0 || !(config[key] as unknown[]).every((value) => typeof value === "string" && Boolean(value.trim())))) {
+      throw new ApiError(400, "BAD_REQUEST", `config.${key} must be a non-empty string array`);
+    }
+  }
+  const targets = Array.isArray(config.targets)
+    ? config.targets.filter((value): value is string => typeof value === "string" && Boolean(value.trim()))
+    : [];
+  if (input.type === "url_archive" && !input.target && typeof config.target !== "string" && typeof config.domain !== "string") {
+    throw new ApiError(400, "BAD_REQUEST", "url_archive requires target, config.target, or config.domain");
+  }
+  if (input.type === "crawl" && !input.target && targets.length === 0) {
+    throw new ApiError(400, "BAD_REQUEST", "crawl requires target or config.targets");
+  }
+  if (input.type === "nuclei_safe" && !input.target && targets.length === 0) {
+    const [urls, services] = await Promise.all([
+      app.prisma.url.count({ where: { programId: input.programId, scopeStatus: "in_scope" } }),
+      app.prisma.httpService.count({ where: { programId: input.programId, failed: false } }),
+    ]);
+    if (urls + services === 0) throw new ApiError(400, "BAD_REQUEST", "nuclei_safe requires target/config.targets or an existing in-scope URL/HTTP service");
+  }
+}
+
 export async function jobsRoutes(app: FastifyInstance): Promise<void> {
   app.get("/jobs/queue/health", { preHandler: app.requireAuth }, async (request, reply) => {
     try {
@@ -53,6 +82,7 @@ export async function jobsRoutes(app: FastifyInstance): Promise<void> {
 
   app.post("/jobs", { preHandler: app.requireAuth }, async (request, reply) => {
     const input = parseRequest(createSchema, request.body) as CreateJobRequest;
+    await validatePhase10Input(app, input);
     const job = await createQueuedJob(app.prisma, app.reconQueue, input, request.user.sub);
     return reply.code(201).send(job);
   });

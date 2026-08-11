@@ -21,7 +21,7 @@ async function scoringConfig(): Promise<ScoringConfigDto> {
   return config;
 }
 
-async function replaceEntityScoring(programId: string, entityType: "asset" | "http_service", entityId: string, result: ScoringPreviewResponse) {
+async function replaceEntityScoring(programId: string, entityType: "asset" | "http_service" | "url" | "endpoint", entityId: string, result: ScoringPreviewResponse) {
   await prisma.$transaction(async (tx) => {
     await tx.scoreEvent.deleteMany({ where: { entityType, entityId, source: "scoring_engine" } });
     await tx.entityClassification.deleteMany({ where: { entityType, entityId, source: "scoring_engine" } });
@@ -41,7 +41,7 @@ async function replaceEntityScoring(programId: string, entityType: "asset" | "ht
   });
 }
 
-async function aggregateAsset(assetId: string) {
+export async function aggregateAssetScore(assetId: string) {
   const asset = await prisma.asset.findUnique({ where: { id: assetId }, include: { httpServices: { select: { id: true } }, urls: { select: { id: true } }, endpoints: { select: { id: true } } } });
   if (!asset) return;
   const serviceIds = asset.httpServices.map((service) => service.id);
@@ -80,7 +80,7 @@ export async function scoreAsset(assetId: string, isNew: boolean): Promise<void>
   const input: ScoringPreviewRequest = { entityType: "asset", host: asset.normalizedValue, url: asset.normalizedValue, isNew: isNew || Boolean(previouslyNew) };
   const result = evaluateScoring(await scoringConfig(), input);
   await replaceEntityScoring(asset.programId, "asset", asset.id, result);
-  await aggregateAsset(asset.id);
+  await aggregateAssetScore(asset.id);
 }
 
 export async function scoreHttpService(serviceId: string, options: { isNewAsset: boolean; duplicateFingerprint: boolean }): Promise<void> {
@@ -93,7 +93,25 @@ export async function scoreHttpService(serviceId: string, options: { isNewAsset:
     isNew: false, duplicateFingerprint: options.duplicateFingerprint,
   });
   await replaceEntityScoring(service.programId, "http_service", service.id, result);
-  if (service.assetId) await aggregateAsset(service.assetId);
+  if (service.assetId) await aggregateAssetScore(service.assetId);
+}
+
+export async function scoreUrl(urlId: string, isNew: boolean): Promise<void> {
+  const item = await prisma.url.findUnique({ where: { id: urlId } });
+  if (!item) return;
+  const result = evaluateScoring(await scoringConfig(), { entityType: "url", host: item.host, url: item.normalizedUrl, path: item.path ?? undefined, title: item.title ?? undefined, statusCode: item.statusCode ?? undefined, port: item.port ?? undefined, technologies: strings(item.technologies), contentType: item.contentType ?? undefined, isNew });
+  await replaceEntityScoring(item.programId, "url", item.id, result);
+  await prisma.url.update({ where: { id: item.id }, data: { categories: result.categories, reasonTags: result.reasonTags, autoScore: result.autoScore, finalScore: item.manualScore ?? result.autoScore, confidence: result.confidence } });
+  if (item.assetId) await aggregateAssetScore(item.assetId);
+}
+
+export async function scoreEndpoint(endpointId: string, isNew: boolean): Promise<void> {
+  const item = await prisma.apiEndpoint.findUnique({ where: { id: endpointId } });
+  if (!item) return;
+  const result = evaluateScoring(await scoringConfig(), { entityType: "endpoint", url: item.normalizedFullUrl, path: item.path, statusCode: item.statusCode ?? undefined, contentType: item.contentType ?? undefined, isNew });
+  await replaceEntityScoring(item.programId, "endpoint", item.id, result);
+  await prisma.apiEndpoint.update({ where: { id: item.id }, data: { categories: result.categories, reasonTags: result.reasonTags, autoScore: result.autoScore, finalScore: item.manualScore ?? result.autoScore, confidence: result.confidence } });
+  if (item.assetId) await aggregateAssetScore(item.assetId);
 }
 
 const sha256 = (value: string) => createHash("sha256").update(value).digest("hex");

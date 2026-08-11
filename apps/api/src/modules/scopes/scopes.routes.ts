@@ -41,6 +41,13 @@ async function ensureProgram(app: FastifyInstance, programId: string): Promise<v
   }
 }
 
+async function recordScopeChange(app: FastifyInstance, programId: string, scopeId: string, operation: "created" | "updated" | "deleted") {
+  await app.prisma.$transaction([
+    app.prisma.entityChange.create({ data: { programId, entityType: "scope", entityId: scopeId, type: "scope_changed", summary: `Program scope ${operation}`, source: "core_api", importance: "high" } }),
+    app.prisma.notificationEvent.create({ data: { programId, eventType: "scope_changed", entityType: "scope", entityId: scopeId, importance: "high", title: "Program scope changed", message: `A program scope was ${operation}`, metadata: { operation } } }),
+  ]);
+}
+
 export async function scopesRoutes(app: FastifyInstance): Promise<void> {
   app.get("/programs/:programId/scopes", { preHandler: app.requireAuth }, async (request) => {
     const { programId } = parseRequest(programParamsSchema, request.params);
@@ -75,6 +82,7 @@ export async function scopesRoutes(app: FastifyInstance): Promise<void> {
         entityType: "scope",
         entityId: scope.id,
       });
+      await recordScopeChange(app, programId, scope.id, "created");
 
       return reply.code(201).send(scope);
     },
@@ -108,6 +116,7 @@ export async function scopesRoutes(app: FastifyInstance): Promise<void> {
         entityId: scopeId,
         metadata: { fields: Object.keys(body) },
       });
+      await recordScopeChange(app, programId, scopeId, "updated");
 
       return scope;
     },
@@ -135,6 +144,7 @@ export async function scopesRoutes(app: FastifyInstance): Promise<void> {
         entityType: "scope",
         entityId: scopeId,
       });
+      await recordScopeChange(app, programId, scopeId, "deleted");
 
       return { success: true };
     },

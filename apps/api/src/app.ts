@@ -18,6 +18,10 @@ import { urlsRoutes } from "./modules/urls/urls.routes.js";
 import { endpointsRoutes } from "./modules/endpoints/endpoints.routes.js";
 import { scannerFindingsRoutes } from "./modules/scanner-findings/scanner-findings.routes.js";
 import { workspaceRoutes } from "./modules/workspace/workspace.routes.js";
+import { schedulesRoutes } from "./modules/schedules/schedules.routes.js";
+import { reconHistoryRoutes } from "./modules/recon-history/recon-history.routes.js";
+import { notificationEventsRoutes } from "./modules/notification-events/notification-events.routes.js";
+import { startScheduleLoop } from "./modules/schedules/schedule.service.js";
 import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { prismaPlugin } from "./plugins/prisma.js";
@@ -76,6 +80,12 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(endpointsRoutes);
   await app.register(scannerFindingsRoutes);
   await app.register(workspaceRoutes);
+  await app.register(schedulesRoutes);
+  await app.register(reconHistoryRoutes);
+  await app.register(notificationEventsRoutes);
+
+  const stopSchedules = startScheduleLoop(app.prisma, app.reconQueue);
+  app.addHook("onClose", async () => stopSchedules());
 
   return app;
 }

@@ -19,6 +19,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 const display = (value: string) => value.replaceAll("_", " ");
 const message = (error: unknown) => error instanceof ApiError ? error.message : "The job request could not be completed.";
+const phase10Help: Partial<Record<ReconJobType, string>> = {
+  url_archive: "Historical URL collection with gau and waybackurls; no active probing.",
+  crawl: "Standard katana crawl only; headless mode is disabled.",
+  nuclei_safe: "Safe nuclei tags only. Results are Scanner Findings, not confirmed vulnerabilities.",
+};
 
 export function CoreJobsPage() {
   const queryClient = useQueryClient();
@@ -47,7 +52,7 @@ export function CoreJobsPage() {
       try { parsed = config.trim() ? JSON.parse(config) : {}; } catch { throw new ApiError(400, "BAD_REQUEST", "Config must be valid JSON."); }
       return coreApi.createJob({ programId, type, target: target.trim() || undefined, config: parsed, manualApproved });
     },
-    onSuccess: async (job) => { await refresh(); setSelected(job); toast[job.status === "blocked" ? "error" : "success"](job.status === "blocked" ? "Job blocked by Scope Guard" : "Simulated job queued"); },
+    onSuccess: async (job) => { await refresh(); setSelected(job); toast[job.status === "blocked" ? "error" : "success"](job.status === "blocked" ? "Job blocked by Scope Guard" : "Recon job queued"); },
     onError: (error) => toast.error(message(error)),
   });
   const cancel = useMutation({ mutationFn: coreApi.cancelJob, onSuccess: async (job) => { await refresh(); setSelected(job); toast.success("Job cancelled"); }, onError: (error) => toast.error(message(error)) });
@@ -55,7 +60,7 @@ export function CoreJobsPage() {
   const rows = useMemo(() => jobs.data ?? [], [jobs.data]);
 
   return <div className="space-y-5">
-    <PageHeader title="Recon jobs" description="Scope-Guarded simulated queue execution. No recon tools run in Phase 5." />
+    <PageHeader title="Recon jobs" description="Scope-Guarded recon orchestration. Phase 10 supports URL archives, standard crawling, and safe Scanner Findings." />
     <div className="rounded-lg border bg-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2 text-sm">
         <b>Queue: recon-jobs</b>
@@ -68,12 +73,13 @@ export function CoreJobsPage() {
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-3">
         {manualType && <label className="flex items-center gap-2 text-sm"><Checkbox checked={manualApproved} onCheckedChange={(checked) => setManualApproved(checked === true)} />Manual approval confirmed</label>}
-        <Button disabled={create.isPending || !programId} onClick={() => create.mutate()}>{create.isPending ? "Validating…" : "Create simulated job"}</Button>
+        <Button disabled={create.isPending || !programId} onClick={() => create.mutate()}>{create.isPending ? "Validating…" : "Create recon job"}</Button>
       </div>
+      {phase10Help[type] && <p className="mt-3 text-xs text-muted-foreground">{phase10Help[type]}</p>}
     </div>
     {jobs.isLoading && <p className="text-sm text-muted-foreground">Loading jobs…</p>}
     {jobs.isError && <div className="rounded-lg border border-destructive/40 p-4 text-sm"><p>{message(jobs.error)}</p><Button className="mt-2" variant="outline" size="sm" onClick={() => jobs.refetch()}>Retry</Button></div>}
-    {!jobs.isLoading && !jobs.isError && rows.length === 0 && <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No jobs yet. Create a simulated job above.</p>}
+    {!jobs.isLoading && !jobs.isError && rows.length === 0 && <p className="rounded-lg border p-6 text-center text-sm text-muted-foreground">No jobs yet. Create a Scope-Guarded job above.</p>}
     {rows.length > 0 && <DataTable rows={rows} onRow={setSelected} columns={[
       { key: "type", label: "Job type", render: (job) => <b>{display(job.type)}</b> },
       { key: "target", label: "Target", render: (job) => <span className="font-mono text-xs">{job.target ?? "Program scope"}</span> },
@@ -83,6 +89,6 @@ export function CoreJobsPage() {
       { key: "duration", label: "Duration", render: (job) => job.runs?.[0]?.durationMs == null ? "—" : `${job.runs[0].durationMs} ms` },
       { key: "actions", label: "", render: (job) => <div className="flex gap-1" onClick={(event) => event.stopPropagation()}><Button size="sm" variant="ghost" onClick={() => setSelected(job)}><Terminal />Logs</Button>{["queued", "running"].includes(job.status) && <Button size="sm" variant="ghost" disabled={cancel.isPending} onClick={() => cancel.mutate(job.id)}>Cancel</Button>}{["failed", "cancelled", "blocked"].includes(job.status) && <Button size="sm" variant="ghost" disabled={retry.isPending} onClick={() => retry.mutate(job.id)}>Retry</Button>}</div> },
     ]} />}
-    <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}><SheetContent className="w-full overflow-y-auto sm:max-w-xl"><SheetHeader><SheetTitle>{selected ? display(selected.type) : "Job"} logs</SheetTitle><SheetDescription>Worker lifecycle for {selected?.id}; Phase 6 MVP jobs execute real tools.</SheetDescription></SheetHeader>{selected?.runs?.[0]?.resultSummary!=null&&<div className="mt-6 rounded-md border p-3"><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Result summary</p><pre className="overflow-auto whitespace-pre-wrap font-mono text-xs">{JSON.stringify(selected.runs[0].resultSummary,null,2)}</pre></div>}<pre className="mt-4 overflow-auto whitespace-pre-wrap rounded-md bg-sidebar p-4 font-mono text-xs leading-6 text-sidebar-foreground">{logs.isLoading ? "Loading logs…" : logs.isError ? message(logs.error) : (logs.data?.logs ?? []).map((line) => `${line.timestamp} [${line.level}] ${line.message}`).join("\n") || "No logs yet."}</pre></SheetContent></Sheet>
+    <Sheet open={Boolean(selected)} onOpenChange={(open) => !open && setSelected(null)}><SheetContent className="w-full overflow-y-auto sm:max-w-xl"><SheetHeader><SheetTitle>{selected ? display(selected.type) : "Job"} logs</SheetTitle><SheetDescription>Worker lifecycle for {selected?.id}; safe findings remain unverified until manual review.</SheetDescription></SheetHeader>{selected?.runs?.[0]?.resultSummary!=null&&<div className="mt-6 rounded-md border p-3"><p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Result summary</p><pre className="overflow-auto whitespace-pre-wrap font-mono text-xs">{JSON.stringify(selected.runs[0].resultSummary,null,2)}</pre></div>}<pre className="mt-4 overflow-auto whitespace-pre-wrap rounded-md bg-sidebar p-4 font-mono text-xs leading-6 text-sidebar-foreground">{logs.isLoading ? "Loading logs…" : logs.isError ? message(logs.error) : (logs.data?.logs ?? []).map((line) => `${line.timestamp} [${line.level}] ${line.message}`).join("\n") || "No logs yet."}</pre></SheetContent></Sheet>
   </div>;
 }

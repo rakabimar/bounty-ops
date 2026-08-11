@@ -35,21 +35,44 @@ tools:
     supportsJson: true
     supportsStdin: true
     notes: Deferred beyond Phase 6.
+  - name: gau
+    binary: gau
+    enabled: true
+    stage: passive
+    defaultArgs: ["--subs"]
+    outputFormat: plain
+    supportsJson: false
+    supportsStdin: false
+    notes: Historical URL collection.
+  - name: waybackurls
+    binary: waybackurls
+    enabled: true
+    stage: passive
+    defaultArgs: []
+    outputFormat: plain
+    supportsJson: false
+    supportsStdin: true
+    notes: Wayback historical URL collection.
   - name: katana
     binary: katana
-    enabled: false
+    enabled: true
     stage: active_medium
-    defaultArgs: []
+    defaultArgs: ["-silent", "-jsonl", "-d", "2"]
     outputFormat: jsonl
     supportsJson: true
     supportsStdin: true
-    notes: Deferred beyond Phase 6.
+    notes: Standard crawler only; no headless mode in Phase 10.
   - name: nuclei
     binary: nuclei
-    enabled: false
+    enabled: true
     stage: active_medium
-    defaultArgs: []
+    defaultArgs: ["-silent", "-jsonl", "-ni", "-duc"]
     outputFormat: jsonl
     supportsJson: true
     supportsStdin: true
-    notes: Deferred beyond Phase 6.
+    notes: Safe template tags only in Phase 10.
+
+nucleiSafeProfile:
+  allowedTags: [exposure, misconfig, takeover, tech, panel]
+  blockedTags: [dos, bruteforce, intrusive, fuzz, destructive, rce, cve, oob]
+  allowedSeverities: [info, low, medium, high, critical]

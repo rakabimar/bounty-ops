@@ -452,3 +452,130 @@ pnpm smoke:phase9
 The smoke test uses Fastify injection and controlled database fixtures, verifies
 all four primary workspace entity types, confirms audit redaction, and performs
 no DNS, HTTP, scanner, or public-target recon.
+
+## Phase 10 URL collection, crawling, and safe scanner findings
+
+Phase 10 adds real worker stages for historical URL collection (`gau` and
+`waybackurls`), standard non-headless crawling (`katana`), and a restricted
+`nuclei_safe` profile. Archive and crawl output is normalized into `Url`,
+`ApiEndpoint`, and `EndpointParameter` records. Nuclei output is stored only as
+`ScannerFinding` records with status `new`; it is not a confirmed vulnerability
+and can become a Potential Bug only through manual review.
+
+Every active target is checked by Scope Guard in the API and again in the
+worker. Configured target arrays are all-or-nothing at enqueue time, discovered
+out-of-scope URLs are discarded, and katana/nuclei receive required program
+headers without persisting header values in ToolRun arguments or logs. Katana
+headless mode is disabled. The nuclei profile allows only `exposure`,
+`misconfig`, `takeover`, `tech`, and `panel` tags and explicitly excludes DoS,
+brute-force, intrusive, fuzzing, destructive, RCE, CVE, and OOB behavior.
+
+Install the Phase 10 tools and ensure the resulting binaries are in `PATH`:
+
+```sh
+go install github.com/lc/gau/v2/cmd/gau@latest
+go install github.com/tomnomnom/waybackurls@latest
+go install github.com/projectdiscovery/katana/cmd/katana@latest
+go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest
+```
+
+On Windows, ensure `%USERPROFILE%\go\bin` is in `PATH`. Missing tools are
+reported by `/tools/health` and produce clear failed ToolRun/job records rather
+than crashing the API or worker. Phase 10 still does not add ffuf, naabu,
+headless crawling, secret scanning, exploit logic, or report automation.
+
+Create jobs after logging in and saving the session cookie:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/jobs \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","type":"url_archive","target":"authorized.example"}'
+curl -b cookies.txt -X POST http://localhost:3000/jobs \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","type":"crawl","target":"https://authorized.example","config":{"maxDepth":2,"maxUrls":200}}'
+curl -b cookies.txt -X POST http://localhost:3000/jobs \
+  -H "content-type: application/json" \
+  -d '{"programId":"PROGRAM_ID","type":"nuclei_safe","target":"https://authorized.example"}'
+```
+
+Authorization and matching in-scope program rules are mandatory. The default
+smoke test performs no DNS, HTTP, crawling, archive lookup, or scanner traffic:
+
+```sh
+pnpm smoke:phase10
+```
+
+Real URL-archive smoke is possible only when an explicit authorized target and
+network opt-in are both supplied. Active katana/nuclei smoke requires a third
+opt-in:
+
+```sh
+BOUNTYOPS_SMOKE_RECON_TARGET=authorized.example \
+BOUNTYOPS_SMOKE_RECON_ALLOW_NETWORK=1 pnpm smoke:phase10
+
+BOUNTYOPS_SMOKE_RECON_TARGET=https://authorized.example \
+BOUNTYOPS_SMOKE_RECON_ALLOW_NETWORK=1 \
+BOUNTYOPS_SMOKE_RECON_ALLOW_ACTIVE=1 pnpm smoke:phase10
+```
+
+In PowerShell, set these values with `$env:VARIABLE="value"`. Never enable the
+network flags for a target you do not own or have explicit authorization to
+assess.
+
+## Phase 11 recon over time and scheduled recon
+
+Phase 11 records a `ReconSnapshot` and stable, SHA-256-fingerprinted
+observations for every real recon stage. A successful run is compared only with
+the most recent successful snapshot for the same program, stage, target set,
+and relevant tool profile. This produces domain-aware `EntityChange` records
+for DNS/IP changes, HTTP status/title/technology changes, new assets, URLs,
+endpoints and parameters, scanner-finding lifecycle changes, and scoring or
+priority transitions.
+
+Comparability is deliberately conservative. Failed, skipped, partial, missing-
+tool, parse-failed, or materially different target-set runs are not used to
+infer disappearance. Passive subdomain and historical URL stages only add
+observations; one missing passive result never means an asset was removed.
+Scanner findings that disappear from two comparable safe-profile snapshots are
+described as “no longer observed,” not as remediated vulnerabilities.
+
+Program Detail now provides Schedules and History tabs, and `/changes` shows
+the persisted change timeline. A new schedule starts disabled by default and
+offers Daily, Every 3 Days, Weekly, or Manual frequency. Both scheduled runs
+and Run Now call the same job creation service as manual jobs, so every attempt
+loads current scope/ROE and passes a fresh Scope Guard preflight before BullMQ
+enqueue. A blocked schedule persists a blocked Job/JobRun and performs no
+network work.
+
+Important changes are persisted as pending `NotificationEvent` rows. The
+Notifications page can review or ignore them, but Phase 11 never sends
+Telegram messages; delivery is reserved for Phase 12. The configurable
+`recon.snapshotRetentionDays` default is 90 days, but automatic snapshot
+deletion is intentionally not enabled yet. Entity changes remain long-lived.
+
+Examples after login:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/programs/PROGRAM_ID/schedules \
+  -H "content-type: application/json" \
+  -d '{"name":"Weekly Deep Recon","jobType":"full_deep_recon","enabled":false,"frequency":"weekly","timeOfDay":"03:00","timezone":"Asia/Jakarta","config":{}}'
+curl -b cookies.txt http://localhost:3000/programs/PROGRAM_ID/schedules
+curl -b cookies.txt -X POST http://localhost:3000/programs/PROGRAM_ID/schedules/SCHEDULE_ID/run-now
+curl -b cookies.txt "http://localhost:3000/programs/PROGRAM_ID/recon-history?limit=50"
+curl -b cookies.txt "http://localhost:3000/changes?programId=PROGRAM_ID&importance=high"
+curl -b cookies.txt "http://localhost:3000/changes/summary?programId=PROGRAM_ID&period=7d"
+curl -b cookies.txt "http://localhost:3000/recon-diffs?programId=PROGRAM_ID"
+curl -b cookies.txt "http://localhost:3000/notification-events?programId=PROGRAM_ID&status=pending"
+```
+
+Run the repeatable verification with:
+
+```sh
+pnpm smoke:phase11
+```
+
+This smoke test uses Fastify injection plus controlled snapshot fixtures. It
+verifies DNS, HTTP, URL, scanner-finding, score and priority diffs, failed-run
+safety, timezone-aware schedule calculations, fresh Scope Guard enforcement,
+notification persistence, and API history. It performs zero DNS, HTTP,
+crawling, scanner, or other network recon and leaves no long-running process.
