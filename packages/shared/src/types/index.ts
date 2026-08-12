@@ -683,7 +683,11 @@ export interface ProgramDto {
 export type ReconSnapshotStatus = "running" | "success" | "partial" | "failed" | "skipped";
 export type ReconDiffType = "added" | "changed" | "removed" | "reappeared";
 export type ChangeImportance = "low" | "medium" | "high" | "critical";
-export type NotificationEventStatus = "pending" | "delivered" | "ignored" | "failed";
+export type NotificationEventStatus = "pending" | "delivered" | "ignored" | "failed" | "suppressed";
+export type NotificationChannel = "telegram";
+export type NotificationDeliveryStatus = "queued" | "sending" | "delivered" | "failed" | "suppressed";
+export type NotificationImportance = "low" | "medium" | "high" | "critical";
+export type NotificationEligibilityReason = "eligible" | "notifications_disabled" | "telegram_disabled" | "global_telegram_disabled" | "event_type_disabled" | "importance_below_threshold" | "event_not_pending" | "already_delivered" | "missing_configuration";
 export type ReconScheduleFrequency = "daily" | "every_3_days" | "weekly" | "manual";
 export type ReconObservationEntityType = "asset" | "dns_record" | "http_service" | "url" | "endpoint" | "scanner_finding";
 
@@ -691,6 +695,10 @@ export interface ReconObservationDto { id: string; snapshotId: string; programId
 export interface ReconSnapshotDto { id: string; programId: string; jobId: string | null; jobRunId: string | null; stage: string; status: ReconSnapshotStatus; startedAt: string; completedAt: string | null; observedCount: number; comparable: boolean; metadata: Record<string, unknown> | null; createdAt: string; observations?: ReconObservationDto[] }
 export interface ReconDiffBatchDto { id: string; programId: string; stage: string; previousSnapshotId: string | null; currentSnapshotId: string; addedCount: number; changedCount: number; removedCount: number; importance: ChangeImportance; summary: Record<string, unknown> | null; createdAt: string; changes?: EntityChangeRecordDto[] }
 export interface NotificationEventDto { id: string; programId: string | null; eventType: string; entityType: string | null; entityId: string | null; importance: ChangeImportance; title: string; message: string; metadata: Record<string, unknown> | null; status: NotificationEventStatus; createdAt: string; deliveredAt: string | null }
+export interface ProgramNotificationPreferenceDto { id: string | null; programId: string; enabled: boolean; telegramEnabled: boolean; minImportance: NotificationImportance; eventTypes: string[]; createdAt: string | null; updatedAt: string | null }
+export interface NotificationDeliveryDto { id: string; notificationEventId: string; channel: NotificationChannel; status: NotificationDeliveryStatus; attemptCount: number; providerMessageId: string | null; lastError: string | null; queuedAt: string | null; startedAt: string | null; deliveredAt: string | null; failedAt: string | null; nextRetryAt: string | null; createdAt: string; updatedAt: string }
+export interface TelegramDeliveryPayload { notificationEventId: string; notificationDeliveryId: string; channel: "telegram" }
+export interface NotificationEligibilityResult { eligible: boolean; reason: NotificationEligibilityReason }
 export interface ReconScheduleDto { id: string; programId: string; name: string; jobType: ReconJobType; enabled: boolean; frequency: ReconScheduleFrequency; timeOfDay: string | null; timezone: string; config: Record<string, unknown> | null; lastTriggeredAt: string | null; nextRunAt: string | null; createdAt: string; updatedAt: string }
 export interface EntityChangeRecordDto { id: string; programId: string; entityType: string; entityId: string; type: string; summary: string; oldValue: string | null; newValue: string | null; source: string; importance: ChangeImportance; createdAt: string }
 export interface ReconHistoryDto { jobs: JobRunDto[]; snapshots: ReconSnapshotDto[]; diffBatches: ReconDiffBatchDto[]; changeCounts: Record<string, number> }

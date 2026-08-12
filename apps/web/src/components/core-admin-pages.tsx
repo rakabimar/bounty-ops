@@ -38,7 +38,10 @@ export function SettingsPage() {
       }
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["core", "settings"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["core", "settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["core", "telegram-config"] }),
+      ]);
       toast.success("Settings saved");
     },
     onError: (error) => toast.error(message(error)),
@@ -180,6 +183,8 @@ export function SettingsPage() {
 export function NotificationsPage() {
   const queryClient = useQueryClient();
   const query = useQuery(coreQ.settings());
+  const config = useQuery(coreQ.telegramConfig());
+  const queueHealth = useQuery(coreQ.notificationQueueHealth());
   const [enabled, setEnabled] = useState(false);
   const [token, setToken] = useState("");
   const [chatId, setChatId] = useState("");
@@ -198,7 +203,10 @@ export function NotificationsPage() {
       await coreApi.updateSetting("telegram.chatId", chatId);
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["core", "settings"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["core", "settings"] }),
+        queryClient.invalidateQueries({ queryKey: ["core", "telegram-config"] }),
+      ]);
       toast.success("Telegram settings saved");
     },
     onError: (error) => toast.error(message(error)),
@@ -259,14 +267,37 @@ export function NotificationsPage() {
             {save.isPending ? "Saving…" : "Save Telegram settings"}
           </Button>
           <p className="text-xs text-muted-foreground">
-            Telegram delivery of persisted change events is deferred; events
-            remain visible and auditable here.
+            The bot token is masked and is never returned to this page after it is saved.
           </p>
         </CardContent>
       </Card>
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader><CardTitle>Configuration status</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <StatusRow label="Telegram" value={config.data?.enabled ? "Enabled" : "Disabled"} />
+            <StatusRow label="Token" value={config.data?.tokenConfigured ? "Configured" : "Missing"} />
+            <StatusRow label="Chat ID" value={config.data?.chatIdConfigured ? "Configured" : "Missing"} />
+            <StatusRow label="Transport" value={config.data?.transport ?? "—"} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle>Delivery queue</CardTitle></CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            <StatusRow label="Redis" value={queueHealth.data?.redis ?? "unknown"} />
+            <StatusRow label="Waiting" value={String(queueHealth.data?.counts.waiting ?? 0)} />
+            <StatusRow label="Active" value={String(queueHealth.data?.counts.active ?? 0)} />
+            <StatusRow label="Failed" value={String(queueHealth.data?.counts.failed ?? 0)} />
+          </CardContent>
+        </Card>
+      </div>
       <NotificationEventsPanel />
     </div>
   );
+}
+
+function StatusRow({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-4"><span className="text-muted-foreground">{label}</span><span className="font-medium capitalize">{value}</span></div>;
 }
 
 export function AuditLogsPage() {

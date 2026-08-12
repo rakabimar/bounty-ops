@@ -505,17 +505,40 @@ export function ChangesPage() {
 
 export function NotificationEventsPanel() {
   const queryClient = useQueryClient();
-  const query = useQuery(
-    coreQ.notificationEvents({ status: "pending", limit: 100 }),
-  );
+  const { selectedProgramId } = useSelectedProgram();
+  const [importance, setImportance] = useState("all");
+  const [eventStatus, setEventStatus] = useState("all");
+  const [deliveryStatus, setDeliveryStatus] = useState("all");
+  const [eventType, setEventType] = useState("");
+  const query = useQuery(coreQ.notificationEvents({
+    programId: selectedProgramId,
+    importance: importance === "all" ? undefined : importance as "low" | "medium" | "high" | "critical",
+    status: eventStatus === "all" ? undefined : eventStatus as "pending" | "delivered" | "ignored" | "failed" | "suppressed",
+    eventType: eventType || undefined,
+    limit: 100,
+  }));
+  const deliveries = useQuery(coreQ.notificationDeliveries({
+    programId: selectedProgramId,
+    status: deliveryStatus === "all" ? undefined : deliveryStatus as "queued" | "sending" | "delivered" | "failed" | "suppressed",
+    importance: importance === "all" ? undefined : importance as "low" | "medium" | "high" | "critical",
+    eventType: eventType || undefined,
+    limit: 100,
+  }));
+  const deliveryByEvent = new Map((deliveries.data ?? []).map((item) => [item.notificationEventId, item]));
+  const rows = (query.data ?? []).filter((event) => deliveryStatus === "all" || deliveryByEvent.get(event.id)?.status === deliveryStatus);
+  const invalidate = async () => Promise.all([
+    queryClient.invalidateQueries({ queryKey: ["core", "notification-events"] }),
+    queryClient.invalidateQueries({ queryKey: ["core", "notification-deliveries"] }),
+    queryClient.invalidateQueries({ queryKey: ["core", "notification-queue-health"] }),
+  ]);
   const ignore = useMutation({
     mutationFn: coreApi.ignoreNotificationEvent,
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({
-        queryKey: ["core", "notification-events"],
-      });
-      toast.success("Event ignored");
-    },
+    onSuccess: async () => { await invalidate(); toast.success("Event ignored"); },
+    onError: (error) => toast.error(message(error)),
+  });
+  const retry = useMutation({
+    mutationFn: coreApi.retryNotificationDelivery,
+    onSuccess: async () => { await invalidate(); toast.success("Delivery queued for retry"); },
     onError: (error) => toast.error(message(error)),
   });
   return (
@@ -523,19 +546,28 @@ export function NotificationEventsPanel() {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Bell className="size-4" />
-          Pending change events
+          Notification events and Telegram delivery
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        {query.isLoading ? (
+      <CardContent className="space-y-4">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Input value={eventType} onChange={(event) => setEventType(event.target.value)} placeholder="Event type…" />
+          {[{ value: importance, set: setImportance, label: "Importance", items: ["low", "medium", "high", "critical"] }, { value: eventStatus, set: setEventStatus, label: "Event status", items: ["pending", "delivered", "ignored", "failed", "suppressed"] }, { value: deliveryStatus, set: setDeliveryStatus, label: "Delivery status", items: ["queued", "sending", "delivered", "failed", "suppressed"] }].map((filter) => (
+            <Select key={filter.label} value={filter.value} onValueChange={filter.set}>
+              <SelectTrigger><SelectValue placeholder={filter.label} /></SelectTrigger>
+              <SelectContent><SelectItem value="all">All {filter.label.toLowerCase()}</SelectItem>{filter.items.map((item) => <SelectItem key={item} value={item}>{item}</SelectItem>)}</SelectContent>
+            </Select>
+          ))}
+        </div>
+        {query.isLoading || deliveries.isLoading ? (
           <Empty text="Loading notification events…" />
-        ) : query.isError ? (
-          <Empty text={message(query.error)} />
-        ) : !query.data?.length ? (
-          <Empty text="No pending notification events." />
+        ) : query.isError || deliveries.isError ? (
+          <Empty text={message(query.error ?? deliveries.error)} />
+        ) : !rows.length ? (
+          <Empty text="No notification events match these filters." />
         ) : (
           <DataTable
-            rows={query.data}
+            rows={rows}
             columns={[
               {
                 key: "time",
@@ -546,6 +578,11 @@ export function NotificationEventsPanel() {
                 key: "importance",
                 label: "Importance",
                 render: (item) => <StatusBadge value={item.importance} />,
+              },
+              {
+                key: "program",
+                label: "Program",
+                render: (item) => deliveryByEvent.get(item.id)?.program?.name ?? item.programId ?? "—",
               },
               {
                 key: "title",
@@ -560,18 +597,25 @@ export function NotificationEventsPanel() {
                 ),
               },
               {
+                key: "eventStatus",
+                label: "Event status",
+                render: (item) => <StatusBadge value={item.status} />,
+              },
+              {
+                key: "deliveryStatus",
+                label: "Telegram",
+                render: (item) => {
+                  const delivery = deliveryByEvent.get(item.id);
+                  return delivery ? <div><StatusBadge value={delivery.status} /><p className="mt-1 text-xs text-muted-foreground">{delivery.attemptCount} attempt(s){delivery.deliveredAt ? ` · ${when(delivery.deliveredAt)}` : ""}</p>{delivery.lastError ? <p className="max-w-64 truncate text-xs text-destructive">{delivery.lastError}</p> : null}</div> : <span className="text-xs text-muted-foreground">Not dispatched</span>;
+                },
+              },
+              {
                 key: "action",
                 label: "",
-                render: (item) => (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={ignore.isPending}
-                    onClick={() => ignore.mutate(item.id)}
-                  >
-                    Ignore
-                  </Button>
-                ),
+                render: (item) => {
+                  const delivery = deliveryByEvent.get(item.id);
+                  return <div className="flex gap-2">{item.status === "pending" ? <Button size="sm" variant="outline" disabled={ignore.isPending} onClick={() => ignore.mutate(item.id)}>Ignore</Button> : null}{item.status === "failed" && delivery?.status === "failed" ? <Button size="sm" variant="outline" disabled={retry.isPending} onClick={() => retry.mutate(item.id)}><RefreshCw />Retry</Button> : null}</div>;
+                },
               },
             ]}
           />

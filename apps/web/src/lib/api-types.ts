@@ -69,6 +69,10 @@ import type {
   ChangeImportance,
   ProgramChangeSummaryDto,
   EntityChangeRecordDto,
+  ProgramNotificationPreferenceDto,
+  NotificationDeliveryDto,
+  NotificationDeliveryStatus,
+  NotificationChannel,
 } from "@bountyops/shared";
 
 export type {
@@ -141,6 +145,10 @@ export type {
   ChangeImportance,
   ProgramChangeSummaryDto,
   EntityChangeRecordDto,
+  ProgramNotificationPreferenceDto,
+  NotificationDeliveryDto,
+  NotificationDeliveryStatus,
+  NotificationChannel,
 };
 
 export interface CreateReconScheduleInput {
@@ -180,6 +188,40 @@ export interface NotificationEventFilters {
   importance?: ChangeImportance;
   status?: NotificationEventStatus;
   limit?: number;
+}
+
+export interface NotificationDeliveryFilters {
+  programId?: string;
+  status?: NotificationDeliveryStatus;
+  eventType?: string;
+  importance?: ChangeImportance;
+  channel?: NotificationChannel;
+  limit?: number;
+}
+
+export interface NotificationDeliveryListItem extends NotificationDeliveryDto {
+  event: NotificationEventDto;
+  program: { id: string; name: string } | null;
+}
+
+export interface TelegramConfigStatusDto {
+  enabled: boolean;
+  tokenConfigured: boolean;
+  chatIdConfigured: boolean;
+  transport: "telegram" | "mock";
+}
+
+export interface NotificationQueueHealthDto {
+  queueName: "notification-delivery";
+  redis: "ok" | "error";
+  counts: {
+    waiting: number;
+    active: number;
+    completed: number;
+    failed: number;
+    delayed: number;
+  };
+  timestamp: string;
 }
 
 export interface BulkScopeGuardPreflightInput {

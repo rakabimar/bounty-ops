@@ -146,7 +146,23 @@ export const EVIDENCE_TYPES = ["text", "request_response", "screenshot_reference
 export const RECON_SNAPSHOT_STATUSES = ["running", "success", "partial", "failed", "skipped"] as const;
 export const RECON_DIFF_TYPES = ["added", "changed", "removed", "reappeared"] as const;
 export const CHANGE_IMPORTANCE_VALUES = ["low", "medium", "high", "critical"] as const;
-export const NOTIFICATION_EVENT_STATUSES = ["pending", "delivered", "ignored", "failed"] as const;
+export const NOTIFICATION_EVENT_STATUSES = ["pending", "delivered", "ignored", "failed", "suppressed"] as const;
+export const NOTIFICATION_CHANNELS = ["telegram"] as const;
+export const NOTIFICATION_DELIVERY_STATUSES = ["queued", "sending", "delivered", "failed", "suppressed"] as const;
+export const NOTIFICATION_DELIVERY_QUEUE_NAME = "notification-delivery" as const;
+export const NOTIFICATION_IMPORTANCE_RANK = { low: 1, medium: 2, high: 3, critical: 4 } as const;
+export const SUPPORTED_NOTIFICATION_EVENT_TYPES = [
+  "new_subdomain", "high_score_asset", "new_live_host", "new_open_web_service",
+  "api_docs_discovered", "graphql_discovered", "staging_dev_discovered",
+  "scanner_finding_high", "scanner_finding_critical", "scanner_finding_resolved",
+  "scanner_finding_reappeared", "priority_promoted", "job_failed", "scope_changed",
+  "schedule_blocked", "tool_degraded",
+] as const;
+export const DEFAULT_PROGRAM_NOTIFICATION_EVENT_TYPES = [
+  "high_score_asset", "new_live_host", "api_docs_discovered", "graphql_discovered",
+  "staging_dev_discovered", "scanner_finding_high", "scanner_finding_critical",
+  "scanner_finding_reappeared", "priority_promoted", "job_failed", "scope_changed",
+] as const;
 export const RECON_SCHEDULE_FREQUENCIES = ["daily", "every_3_days", "weekly", "manual"] as const;
 export const RECON_CHANGE_TYPES = [
   "asset_discovered", "asset_reappeared", "asset_not_seen", "dns_record_added", "dns_record_removed",

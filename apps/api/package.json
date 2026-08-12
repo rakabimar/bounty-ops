@@ -13,6 +13,7 @@
     "smoke:phase9": "tsx scripts/phase9-smoke.ts",
     "smoke:phase10": "tsx scripts/phase10-smoke.ts",
     "smoke:phase11": "tsx scripts/phase11-smoke.ts",
+    "smoke:phase12": "tsx scripts/phase12-smoke.ts",
     "lint": "echo \"No API lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },

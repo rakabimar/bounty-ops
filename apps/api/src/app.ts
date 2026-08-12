@@ -21,6 +21,8 @@ import { workspaceRoutes } from "./modules/workspace/workspace.routes.js";
 import { schedulesRoutes } from "./modules/schedules/schedules.routes.js";
 import { reconHistoryRoutes } from "./modules/recon-history/recon-history.routes.js";
 import { notificationEventsRoutes } from "./modules/notification-events/notification-events.routes.js";
+import { notificationDeliveryRoutes } from "./modules/notifications/notification-delivery.routes.js";
+import { startNotificationDispatcher } from "./modules/notifications/notification-dispatcher.service.js";
 import { startScheduleLoop } from "./modules/schedules/schedule.service.js";
 import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
@@ -83,9 +85,11 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(schedulesRoutes);
   await app.register(reconHistoryRoutes);
   await app.register(notificationEventsRoutes);
+  await app.register(notificationDeliveryRoutes);
 
   const stopSchedules = startScheduleLoop(app.prisma, app.reconQueue);
-  app.addHook("onClose", async () => stopSchedules());
+  const stopNotifications = startNotificationDispatcher(app.prisma, app.notificationQueue, app.log);
+  app.addHook("onClose", async () => { stopSchedules(); stopNotifications(); });
 
   return app;
 }

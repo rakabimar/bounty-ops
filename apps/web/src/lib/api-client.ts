@@ -1,7 +1,10 @@
 import { seedDb } from "./mock-data";
 import { priorityFromScore } from "./bounty-types";
 import { API_BASE_URL, API_MODE } from "./api-config";
-import { RECON_JOB_DEFAULT_STAGES } from "@bountyops/shared";
+import {
+  DEFAULT_PROGRAM_NOTIFICATION_EVENT_TYPES,
+  RECON_JOB_DEFAULT_STAGES,
+} from "@bountyops/shared";
 import type {
   AppSettings,
   Asset,
@@ -66,6 +69,12 @@ import type {
   ManualChecklistDto,
   NotificationEventDto,
   NotificationEventFilters,
+  NotificationDeliveryDto,
+  NotificationDeliveryFilters,
+  NotificationDeliveryListItem,
+  NotificationQueueHealthDto,
+  ProgramNotificationPreferenceDto,
+  TelegramConfigStatusDto,
   ProgramChangeSummaryDto,
   ProgramDetailDto,
   ProgramDto,
@@ -2623,8 +2632,78 @@ export const coreApi = {
       ? request(`/notification-events${qs({ ...filters })}`)
       : [],
   ignoreNotificationEvent: async (id: string): Promise<NotificationEventDto> =>
-    request(`/notification-events/${id}/status`, {
-      method: "PATCH",
-      body: JSON.stringify({ status: "ignored" }),
-    }),
+    API_MODE === "http"
+      ? request(`/notification-events/${id}/status`, {
+          method: "PATCH",
+          body: JSON.stringify({ status: "ignored" }),
+        })
+      : Promise.reject(new Error("Notification events are read-only in mock mode")),
+  getTelegramConfig: async (): Promise<TelegramConfigStatusDto> =>
+    API_MODE === "http"
+      ? request("/notifications/telegram/config")
+      : {
+          enabled: false,
+          tokenConfigured: false,
+          chatIdConfigured: false,
+          transport: "mock",
+        },
+  getProgramNotificationPreferences: async (
+    programId: string,
+  ): Promise<ProgramNotificationPreferenceDto> =>
+    API_MODE === "http"
+      ? request(`/programs/${programId}/notification-preferences`)
+      : {
+          id: null,
+          programId,
+          enabled: false,
+          telegramEnabled: false,
+          minImportance: "medium",
+          eventTypes: [...DEFAULT_PROGRAM_NOTIFICATION_EVENT_TYPES],
+          createdAt: null,
+          updatedAt: null,
+        },
+  updateProgramNotificationPreferences: async (
+    programId: string,
+    input: Pick<
+      ProgramNotificationPreferenceDto,
+      "enabled" | "telegramEnabled" | "minImportance" | "eventTypes"
+    >,
+  ): Promise<ProgramNotificationPreferenceDto> =>
+    API_MODE === "http"
+      ? request(`/programs/${programId}/notification-preferences`, {
+          method: "PUT",
+          body: JSON.stringify(input),
+        })
+      : {
+          id: `mock-preference-${programId}`,
+          programId,
+          ...input,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+  getNotificationDeliveries: async (
+    filters: NotificationDeliveryFilters = {},
+  ): Promise<NotificationDeliveryListItem[]> =>
+    API_MODE === "http"
+      ? request(`/notification-deliveries${qs({ ...filters })}`)
+      : [],
+  getNotificationEventDeliveries: async (
+    id: string,
+  ): Promise<NotificationDeliveryDto[]> =>
+    API_MODE === "http"
+      ? request(`/notification-events/${id}/deliveries`)
+      : [],
+  retryNotificationDelivery: async (
+    id: string,
+  ): Promise<NotificationDeliveryDto> =>
+    request(`/notification-events/${id}/retry`, { method: "POST" }),
+  getNotificationQueueHealth: async (): Promise<NotificationQueueHealthDto> =>
+    API_MODE === "http"
+      ? request("/notifications/queue/health")
+      : {
+          queueName: "notification-delivery",
+          redis: "ok",
+          counts: { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 },
+          timestamp: new Date().toISOString(),
+        },
 };

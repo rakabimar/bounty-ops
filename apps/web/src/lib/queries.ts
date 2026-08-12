@@ -391,4 +391,26 @@ export const coreQ = {
       queryKey: ["core", "notification-events", filters],
       queryFn: () => coreApi.getNotificationEvents(filters),
     }),
+  telegramConfig: () =>
+    queryOptions({
+      queryKey: ["core", "telegram-config"],
+      queryFn: coreApi.getTelegramConfig,
+    }),
+  notificationPreferences: (programId: string) =>
+    queryOptions({
+      queryKey: ["core", "notification-preferences", programId],
+      queryFn: () => coreApi.getProgramNotificationPreferences(programId),
+    }),
+  notificationDeliveries: (
+    filters: Parameters<typeof coreApi.getNotificationDeliveries>[0] = {},
+  ) =>
+    queryOptions({
+      queryKey: ["core", "notification-deliveries", filters],
+      queryFn: () => coreApi.getNotificationDeliveries(filters),
+    }),
+  notificationQueueHealth: () =>
+    queryOptions({
+      queryKey: ["core", "notification-queue-health"],
+      queryFn: coreApi.getNotificationQueueHealth,
+    }),
 };

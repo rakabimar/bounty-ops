@@ -579,3 +579,69 @@ verifies DNS, HTTP, URL, scanner-finding, score and priority diffs, failed-run
 safety, timezone-aware schedule calculations, fresh Scope Guard enforcement,
 notification persistence, and API history. It performs zero DNS, HTTP,
 crawling, scanner, or other network recon and leaves no long-running process.
+
+## Phase 12 Telegram notification delivery
+
+Phase 12 keeps event detection separate from delivery:
+
+```text
+NotificationEvent -> preference evaluation -> notification-delivery queue
+                  -> Telegram worker -> NotificationDelivery
+```
+
+Global settings decide whether BountyOps may use Telegram and hold the single
+bot token/chat destination. Program preferences independently default to off
+and select the channel, minimum importance (`low`, `medium`, `high`, or
+`critical`), and event types. Both layers must allow an event before it is
+queued. Tokens remain masked in API responses and are never put in BullMQ
+payloads, audit metadata, or formatted messages.
+
+Deliveries move through `queued`, `sending`, `delivered`, `failed`, or
+`suppressed`. The `notification-delivery` BullMQ queue uses four attempts with
+exponential backoff. Network errors, timeouts, HTTP 429, and HTTP 5xx retry;
+permanent Telegram/configuration failures do not retry indefinitely. A unique
+database constraint and deterministic queue job ID prevent duplicate Telegram
+deliveries. Notification failures remain isolated and never change recon job
+results.
+
+Program Detail has a Notifications tab. The Notifications page shows masked
+configuration status, queue health, persisted event/delivery state, attempts,
+safe errors, ignore controls, and failed-delivery retry. Scanner messages say
+only that a scanner finding was observed; they do not claim a confirmed
+vulnerability.
+
+Useful protected API requests include:
+
+```sh
+curl -b cookies.txt http://localhost:3000/programs/PROGRAM_ID/notification-preferences
+curl -b cookies.txt -X PUT http://localhost:3000/programs/PROGRAM_ID/notification-preferences \
+  -H "content-type: application/json" \
+  -d '{"enabled":true,"telegramEnabled":true,"minImportance":"medium","eventTypes":["high_score_asset","graphql_discovered","job_failed"]}'
+curl -b cookies.txt "http://localhost:3000/notification-deliveries?programId=PROGRAM_ID"
+curl -b cookies.txt http://localhost:3000/notification-events/EVENT_ID/deliveries
+curl -b cookies.txt -X POST http://localhost:3000/notification-events/EVENT_ID/retry
+curl -b cookies.txt http://localhost:3000/notifications/queue/health
+```
+
+Run the API, combined recon/notification worker, and web app with
+`pnpm dev:api`, `pnpm dev:worker`, and `pnpm dev:web`. A notification-only
+worker is also available through
+`pnpm --filter @bountyops/worker dev:notification-worker`.
+
+The default smoke uses the in-process mock transport and performs zero Telegram
+or public network requests:
+
+```sh
+pnpm smoke:phase12
+```
+
+An optional live check sends exactly one message only when valid Telegram
+credentials are intentionally configured and explicit opt-in is present:
+
+```sh
+BOUNTYOPS_SMOKE_TELEGRAM_ALLOW_SEND=1 pnpm smoke:phase12
+```
+
+In PowerShell use
+`$env:BOUNTYOPS_SMOKE_TELEGRAM_ALLOW_SEND="1"`. The live message is clearly
+labeled `BountyOps Phase 12 live Telegram smoke test`.

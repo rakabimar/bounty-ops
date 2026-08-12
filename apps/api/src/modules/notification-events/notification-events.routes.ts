@@ -6,6 +6,7 @@ import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ApiError, parseRequest } from "../../utils/response.js";
 import { createAuditLog } from "../audit/audit.service.js";
+import { notificationDeliveryJobId } from "../notifications/notification-dispatcher.service.js";
 
 const querySchema = z.object({
   programId: z.string().optional(),
@@ -50,6 +51,9 @@ export async function notificationEventsRoutes(app: FastifyInstance) {
         where: { id },
         data: { status: "ignored" },
       });
+      await app.prisma.notificationDelivery.updateMany({ where: { notificationEventId: id, status: { in: ["queued", "sending"] } }, data: { status: "suppressed", lastError: "event_ignored" } });
+      const queued = await app.notificationQueue.getJob(notificationDeliveryJobId(id));
+      if (queued) await queued.remove().catch(() => undefined);
       await createAuditLog(app.prisma, {
         userId: request.user.sub,
         programId: event.programId ?? undefined,

@@ -17,37 +17,38 @@ model User {
 }
 
 model Program {
-  id                  String               @id @default(cuid())
-  platform            String
-  name                String
-  handle              String?
-  programUrl          String?
-  status              String               @default("active")
-  huntingStatus       String               @default("ongoing")
-  intakeSource        String?
-  rawPolicyText       String?
-  policyHash          String?
-  lastSyncedAt        DateTime?
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @updatedAt
-  scopes              ProgramScope[]
-  rules               ProgramRules?
-  headers             ProgramHeader[]
-  auditLogs           AuditLog[]
-  assets              Asset[]
-  dnsRecords          DnsRecord[]
-  httpServices        HttpService[]
-  urls                Url[]
-  apiEndpoints        ApiEndpoint[]
-  scannerFindings     ScannerFinding[]
-  researchNotes       ResearchNote[]
-  manualChecklists    ManualChecklist[]
-  interestingRequests InterestingRequest[]
-  evidenceItems       EvidenceItem[]
-  jobs                Job[]
-  scopeGuardChecks    ScopeGuardCheck[]
-  reconSnapshots      ReconSnapshot[]
-  reconSchedules      ReconSchedule[]
+  id                     String                         @id @default(cuid())
+  platform               String
+  name                   String
+  handle                 String?
+  programUrl             String?
+  status                 String                         @default("active")
+  huntingStatus          String                         @default("ongoing")
+  intakeSource           String?
+  rawPolicyText          String?
+  policyHash             String?
+  lastSyncedAt           DateTime?
+  createdAt              DateTime                       @default(now())
+  updatedAt              DateTime                       @updatedAt
+  scopes                 ProgramScope[]
+  rules                  ProgramRules?
+  headers                ProgramHeader[]
+  auditLogs              AuditLog[]
+  assets                 Asset[]
+  dnsRecords             DnsRecord[]
+  httpServices           HttpService[]
+  urls                   Url[]
+  apiEndpoints           ApiEndpoint[]
+  scannerFindings        ScannerFinding[]
+  researchNotes          ResearchNote[]
+  manualChecklists       ManualChecklist[]
+  interestingRequests    InterestingRequest[]
+  evidenceItems          EvidenceItem[]
+  jobs                   Job[]
+  scopeGuardChecks       ScopeGuardCheck[]
+  reconSnapshots         ReconSnapshot[]
+  reconSchedules         ReconSchedule[]
+  notificationPreference ProgramNotificationPreference?
 }
 
 model ProgramScope {
@@ -692,23 +693,60 @@ model ReconDiffBatch {
 }
 
 model NotificationEvent {
-  id          String    @id @default(cuid())
+  id          String                 @id @default(cuid())
   programId   String?
   eventType   String
   entityType  String?
   entityId    String?
-  importance  String    @default("low")
+  importance  String                 @default("low")
   title       String
   message     String
   metadata    Json?
-  status      String    @default("pending")
-  createdAt   DateTime  @default(now())
+  status      String                 @default("pending")
+  createdAt   DateTime               @default(now())
   deliveredAt DateTime?
+  deliveries  NotificationDelivery[]
 
   @@index([programId])
   @@index([eventType])
   @@index([importance])
   @@index([status])
+  @@index([createdAt])
+}
+
+model ProgramNotificationPreference {
+  id              String   @id @default(cuid())
+  programId       String   @unique
+  program         Program  @relation(fields: [programId], references: [id], onDelete: Cascade)
+  enabled         Boolean  @default(false)
+  telegramEnabled Boolean  @default(false)
+  minImportance   String   @default("medium")
+  eventTypes      Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model NotificationDelivery {
+  id                  String            @id @default(cuid())
+  notificationEventId String
+  notificationEvent   NotificationEvent @relation(fields: [notificationEventId], references: [id], onDelete: Cascade)
+  channel             String            @default("telegram")
+  status              String            @default("queued")
+  attemptCount        Int               @default(0)
+  providerMessageId   String?
+  lastError           String?
+  queuedAt            DateTime?
+  startedAt           DateTime?
+  deliveredAt         DateTime?
+  failedAt            DateTime?
+  nextRetryAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@unique([notificationEventId, channel])
+  @@index([channel])
+  @@index([status])
+  @@index([nextRetryAt])
   @@index([createdAt])
 }
 

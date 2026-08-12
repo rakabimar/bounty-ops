@@ -6,6 +6,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "dev:notification-worker": "tsx watch src/notification-worker-main.ts",
     "lint": "echo \"No worker lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },

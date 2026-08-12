@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Archive, Plus, Save, ShieldAlert, Trash2 } from "lucide-react";
+import { Archive, Bell, Plus, Save, ShieldAlert, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   AUTOMATION_ALLOWED_VALUES,
   PLATFORMS,
   PROGRAM_STATUSES,
   SCOPE_ASSET_TYPES,
+  SUPPORTED_NOTIFICATION_EVENT_TYPES,
 } from "@bountyops/shared";
 import { coreApi } from "@/lib/api-client";
 import { coreQ } from "@/lib/queries";
@@ -461,6 +462,7 @@ export function ProgramDetailPage({ id }: { id: string }) {
             "Headers",
             "Schedules",
             "History",
+            "Notifications",
             "Assets",
             "Jobs",
             "URLs",
@@ -520,6 +522,9 @@ export function ProgramDetailPage({ id }: { id: string }) {
         <TabsContent value="history">
           <ReconHistoryPanel programId={id} />
         </TabsContent>
+        <TabsContent value="notifications">
+          <ProgramNotificationPreferences programId={id} />
+        </TabsContent>
         {["assets", "jobs", "urls"].map((tab) => (
           <TabsContent key={tab} value={tab}>
             <Card>
@@ -532,6 +537,83 @@ export function ProgramDetailPage({ id }: { id: string }) {
       </Tabs>
     </div>
   );
+}
+
+const notificationGroups = {
+  Discoveries: [
+    "new_subdomain", "new_live_host", "high_score_asset", "api_docs_discovered",
+    "graphql_discovered", "staging_dev_discovered",
+  ],
+  Scanner: [
+    "scanner_finding_high", "scanner_finding_critical", "scanner_finding_resolved",
+    "scanner_finding_reappeared",
+  ],
+  Workflow: ["priority_promoted", "job_failed", "schedule_blocked", "scope_changed"],
+} as const;
+
+function ProgramNotificationPreferences({ programId }: { programId: string }) {
+  const queryClient = useQueryClient();
+  const query = useQuery(coreQ.notificationPreferences(programId));
+  const [enabled, setEnabled] = useState(false);
+  const [telegramEnabled, setTelegramEnabled] = useState(false);
+  const [minImportance, setMinImportance] = useState<"low" | "medium" | "high" | "critical">("medium");
+  const [eventTypes, setEventTypes] = useState<string[]>([]);
+  useEffect(() => {
+    if (!query.data) return;
+    setEnabled(query.data.enabled);
+    setTelegramEnabled(query.data.telegramEnabled);
+    setMinImportance(query.data.minImportance);
+    setEventTypes(query.data.eventTypes);
+  }, [query.data]);
+  const save = useMutation({
+    mutationFn: () => coreApi.updateProgramNotificationPreferences(programId, { enabled, telegramEnabled, minImportance, eventTypes }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["core", "notification-preferences", programId] });
+      toast.success("Notification preferences saved");
+    },
+    onError: (error) => toast.error(errorMessage(error)),
+  });
+  const toggleEvent = (eventType: string, checked: boolean) => setEventTypes((current) => checked ? [...new Set([...current, eventType])] : current.filter((item) => item !== eventType));
+  if (query.isLoading) return <Empty text="Loading notification preferences…" />;
+  if (query.isError) return <QueryState message={errorMessage(query.error)} retry={() => query.refetch()} />;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><Bell className="size-4" />Telegram notifications</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <div className="grid gap-4 md:grid-cols-2">
+          <ToggleRow label="Enable notifications for this program" value={enabled} set={setEnabled} />
+          <ToggleRow label="Telegram channel" value={telegramEnabled} set={setTelegramEnabled} />
+        </div>
+        <Field label="Minimum importance">
+          <Select value={minImportance} onValueChange={(value) => setMinImportance(value as typeof minImportance)}>
+            <SelectTrigger className="max-w-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>{["low", "medium", "high", "critical"].map((value) => <SelectItem key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        <div className="grid gap-5 md:grid-cols-3">
+          {Object.entries(notificationGroups).map(([group, values]) => (
+            <div key={group} className="space-y-2 rounded-lg border p-4">
+              <p className="font-medium">{group}</p>
+              {values.filter((value) => SUPPORTED_NOTIFICATION_EVENT_TYPES.includes(value)).map((value) => (
+                <label key={value} className="flex items-start gap-2 text-sm">
+                  <input type="checkbox" className="mt-1" checked={eventTypes.includes(value)} onChange={(event) => toggleEvent(value, event.target.checked)} />
+                  <span>{value.replaceAll("_", " ")}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">Notifications are generated from BountyOps change events. Scanner findings are not confirmed vulnerabilities.</p>
+        <Button disabled={save.isPending} onClick={() => save.mutate()}><Save />{save.isPending ? "Saving…" : "Save preferences"}</Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ToggleRow({ label, value, set }: { label: string; value: boolean; set: (value: boolean) => void }) {
+  return <div className="flex items-center justify-between rounded-lg border p-4"><Label>{label}</Label><Switch checked={value} onCheckedChange={set} /></div>;
 }
 
 export function ScopePage() {
