@@ -302,6 +302,10 @@ importers:
         version: 7.0.2
 
   packages/shared:
+    dependencies:
+      zod:
+        specifier: latest
+        version: 4.4.3
     devDependencies:
       typescript:
         specifier: latest

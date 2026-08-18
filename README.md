@@ -645,3 +645,88 @@ BOUNTYOPS_SMOKE_TELEGRAM_ALLOW_SEND=1 pnpm smoke:phase12
 In PowerShell use
 `$env:BOUNTYOPS_SMOKE_TELEGRAM_ALLOW_SEND="1"`. The live message is clearly
 labeled `BountyOps Phase 12 live Telegram smoke test`.
+
+## Phase 13 program intake and DeepSeek fallback
+
+Phase 13 adds a review-first onboarding pipeline:
+
+```text
+Allowlisted platform URL or pasted policy text
+  -> deterministic platform adapter
+  -> extraction confidence
+  -> optional DeepSeek structured fallback
+  -> editable proposal
+  -> explicit human approval
+  -> Program / Scope / Rules / Headers
+```
+
+Deterministic adapters support HackerOne, Bugcrowd, YesWeHack, and manual
+pasted text without platform credentials. Platform fetching accepts HTTPS only,
+uses exact platform host allowlists, rejects private/link-local resolution,
+revalidates at most three redirects, times out after ten seconds, and caps the
+response at 2 MB. No browser automation, authentication bypass, or CAPTCHA
+evasion is used.
+
+DeepSeek is advisory extraction only. It never makes Scope Guard or recon
+decisions, confirms vulnerabilities, changes review status, or submits reports.
+The default model is `deepseek-v4-flash`; `deepseek-v4-pro` or future model
+names can be configured explicitly. Policy text is isolated as untrusted data,
+AI input is allowlisted and capped, JSON output is Zod validated, and a safer
+deterministic value wins whenever extraction disagrees. AI cannot widen exact
+domains into wildcards, turn out-of-scope into in-scope, or enable DoS.
+
+Safety defaults are deliberately conservative:
+
+- automation is `unknown` unless permission is explicit;
+- aggressive scanning and DoS testing are off;
+- unknown rate/concurrency remain unset;
+- new imported programs are created as `active` but `not_hunting`;
+- no recon schedule or job is created automatically;
+- existing policy sync always shows a diff before explicit apply.
+
+The Settings page configures `ai.enabled`, the fixed `deepseek` provider,
+model, masked API key, base URL, timeout, monthly intake fallback-call limit,
+and confidence threshold. Configuration is DB-first with environment fallback:
+
+```env
+DEEPSEEK_API_KEY=
+DEEPSEEK_MODEL=deepseek-v4-flash
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_TIMEOUT_MS=30000
+AI_ENABLED=false
+AI_MONTHLY_LIMIT=100
+AI_INTAKE_FALLBACK_THRESHOLD=70
+```
+
+Program creation now offers Manual Setup and Import Program. Program Detail
+contains Policy Sync with added/removed scopes, ROE changes, header changes,
+visible safety warnings, editable structured data, and explicit confirmation
+for destructive or permission-widening changes.
+
+Useful protected endpoints:
+
+```sh
+curl -b cookies.txt -X POST http://localhost:3000/program-intake/preview \
+  -H "content-type: application/json" \
+  -d '{"sourceType":"pasted_text","platform":"manual","text":"Program Name: Local test\nIn Scope\n*.example.test\nAutomated scanning is limited to 2 RPS. DoS is prohibited."}'
+curl -b cookies.txt http://localhost:3000/program-intake/runs
+curl -b cookies.txt -X POST http://localhost:3000/program-intake/runs/RUN_ID/approve \
+  -H "content-type: application/json" --data-binary @reviewed-intake-approval.json
+curl -b cookies.txt -X POST http://localhost:3000/programs/PROGRAM_ID/intake/sync-preview \
+  -H "content-type: application/json" -d '{"sourceType":"platform_url"}'
+curl -b cookies.txt http://localhost:3000/ai/health
+curl -b cookies.txt -X POST http://localhost:3000/ai/test
+```
+
+Run local fixture verification with:
+
+```sh
+pnpm smoke:phase13
+```
+
+The default smoke performs zero platform HTTP, DeepSeek, recon, or public
+network calls. Optional live DeepSeek validation sends only synthetic policy
+text and requires `$env:BOUNTYOPS_SMOKE_DEEPSEEK_ALLOW_SEND="1"`. Optional
+platform fetching requires both
+`$env:BOUNTYOPS_SMOKE_INTAKE_ALLOW_NETWORK="1"` and an explicit allowlisted
+`$env:BOUNTYOPS_SMOKE_INTAKE_URL="https://..."`.

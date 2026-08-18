@@ -28,6 +28,8 @@ import { authPlugin } from "./plugins/auth.js";
 import { errorHandlerPlugin } from "./plugins/error-handler.js";
 import { prismaPlugin } from "./plugins/prisma.js";
 import { queuePlugin } from "./plugins/queue.js";
+import { programIntakeRoutes } from "./modules/program-intake/program-intake.routes.js";
+import { aiRoutes } from "./modules/ai/ai.routes.js";
 
 export async function buildApp(): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
@@ -86,6 +88,8 @@ export async function buildApp(): Promise<FastifyInstance> {
   await app.register(reconHistoryRoutes);
   await app.register(notificationEventsRoutes);
   await app.register(notificationDeliveryRoutes);
+  await app.register(programIntakeRoutes);
+  await app.register(aiRoutes);
 
   const stopSchedules = startScheduleLoop(app.prisma, app.reconQueue);
   const stopNotifications = startNotificationDispatcher(app.prisma, app.notificationQueue, app.log);

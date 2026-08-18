@@ -413,4 +413,8 @@ export const coreQ = {
       queryKey: ["core", "notification-queue-health"],
       queryFn: coreApi.getNotificationQueueHealth,
     }),
+  aiHealth: () =>
+    queryOptions({ queryKey: ["core", "ai-health"], queryFn: coreApi.getAiHealth }),
+  programIntakeRuns: (filters: Parameters<typeof coreApi.getProgramIntakeRuns>[0] = {}) =>
+    queryOptions({ queryKey: ["core", "program-intake-runs", filters], queryFn: () => coreApi.getProgramIntakeRuns(filters) }),
 };

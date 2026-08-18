@@ -1,6 +1,9 @@
 export const BOUNTYOPS_SERVICE_NAME = "bountyops" as const;
 
-export const PLATFORMS = ["hackerone", "bugcrowd", "yeswehack", "custom"] as const;
+export const PLATFORMS = ["hackerone", "bugcrowd", "yeswehack", "custom", "manual"] as const;
+export const PROGRAM_INTAKE_PLATFORMS = ["hackerone", "bugcrowd", "yeswehack", "manual"] as const;
+export const PROGRAM_INTAKE_SOURCE_TYPES = ["platform_url", "pasted_text"] as const;
+export const PROGRAM_INTAKE_STATUSES = ["pending", "parsing", "needs_review", "approved", "rejected", "failed"] as const;
 
 export const PROGRAM_STATUSES = ["active", "paused", "archived"] as const;
 

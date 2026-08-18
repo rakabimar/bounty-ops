@@ -7,7 +7,14 @@ import { createAuditLog } from "../audit/audit.service.js";
 
 export const SETTING_KEYS = [
   "ai.enabled",
+  "ai.provider",
   "ai.monthlyLimit",
+  "ai.intakeFallbackThreshold",
+  "deepseek.model",
+  "deepseek.apiKey",
+  "deepseek.baseUrl",
+  "deepseek.timeoutMs",
+  // Deprecated compatibility key. Phase 13 no longer reads it.
   "gemini.model",
   "telegram.enabled",
   "telegram.botToken",
@@ -25,8 +32,14 @@ const settingBodySchema = z.object({ value: z.unknown() });
 
 const defaultSettings: Record<SettingKey, Prisma.InputJsonValue> = {
   "ai.enabled": env.AI_ENABLED.toLowerCase() === "true",
+  "ai.provider": "deepseek",
   "ai.monthlyLimit": env.AI_MONTHLY_LIMIT,
-  "gemini.model": env.GEMINI_MODEL,
+  "ai.intakeFallbackThreshold": env.AI_INTAKE_FALLBACK_THRESHOLD,
+  "deepseek.model": env.DEEPSEEK_MODEL,
+  "deepseek.apiKey": env.DEEPSEEK_API_KEY,
+  "deepseek.baseUrl": env.DEEPSEEK_BASE_URL,
+  "deepseek.timeoutMs": env.DEEPSEEK_TIMEOUT_MS,
+  "gemini.model": "deprecated",
   "telegram.enabled": false,
   "telegram.botToken": env.TELEGRAM_BOT_TOKEN,
   "telegram.chatId": env.TELEGRAM_CHAT_ID,
@@ -41,7 +54,7 @@ function isSettingKey(key: string): key is SettingKey {
 }
 
 function maskSetting(key: string, value: unknown): unknown {
-  if (key === "telegram.botToken" && typeof value === "string" && value.length > 0) {
+  if (["telegram.botToken", "deepseek.apiKey"].includes(key) && typeof value === "string" && value.length > 0) {
     return "********";
   }
 
@@ -89,8 +102,11 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     if (!isSettingKey(key)) {
       throw new ApiError(400, "BAD_REQUEST", "Unsupported setting key");
     }
+    if (key === "ai.provider" && body.value !== "deepseek") throw new ApiError(400, "BAD_REQUEST", "DeepSeek is the only supported AI provider");
+    if (key === "deepseek.baseUrl" && (typeof body.value !== "string" || !body.value.startsWith("https://"))) throw new ApiError(400, "BAD_REQUEST", "DeepSeek base URL must use HTTPS");
+    if (key === "ai.intakeFallbackThreshold" && (!Number.isInteger(body.value) || Number(body.value) < 0 || Number(body.value) > 100)) throw new ApiError(400, "BAD_REQUEST", "AI intake fallback threshold must be between 0 and 100");
 
-    if (key === "telegram.botToken" && body.value === "********") {
+    if (["telegram.botToken", "deepseek.apiKey"].includes(key) && body.value === "********") {
       const existing = await app.prisma.appSetting.findUnique({ where: { key } });
       return { key, value: maskSetting(key, existing?.value ?? defaultSettings[key]) };
     }
@@ -104,7 +120,7 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
 
     await createAuditLog(app.prisma, {
       userId: request.user.sub,
-      action: "setting.updated",
+      action: key.startsWith("ai.") || key.startsWith("deepseek.") ? "ai.configuration.updated" : "setting.updated",
       entityType: "setting",
       entityId: setting.id,
       metadata: { key },

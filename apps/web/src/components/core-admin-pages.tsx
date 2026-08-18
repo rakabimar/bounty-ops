@@ -26,6 +26,7 @@ const string = (value: unknown) => (typeof value === "string" ? value : "");
 export function SettingsPage() {
   const queryClient = useQueryClient();
   const query = useQuery(coreQ.settings());
+  const aiHealth = useQuery(coreQ.aiHealth());
   const [values, setValues] = useState<Record<string, unknown>>({});
   useEffect(() => {
     if (query.data) setValues(query.data);
@@ -33,7 +34,7 @@ export function SettingsPage() {
   const save = useMutation({
     mutationFn: async (keys: string[]) => {
       for (const key of keys) {
-        if (key === "telegram.botToken" && values[key] === "********") continue;
+        if (["telegram.botToken", "deepseek.apiKey"].includes(key) && values[key] === "********") continue;
         await coreApi.updateSetting(key, values[key]);
       }
     },
@@ -46,12 +47,17 @@ export function SettingsPage() {
     },
     onError: (error) => toast.error(message(error)),
   });
+  const testAi = useMutation({
+    mutationFn: coreApi.testDeepSeek,
+    onSuccess: (result) => result.success ? toast.success(`DeepSeek responded in ${result.latencyMs} ms`) : toast.error(result.error ?? "DeepSeek test failed"),
+    onError: (error) => toast.error(message(error)),
+  });
   if (query.isLoading) return <Empty text="Loading settings…" />;
   if (query.isError)
     return (
       <ErrorState error={message(query.error)} retry={() => query.refetch()} />
     );
-  const aiKeys = ["ai.enabled", "ai.monthlyLimit", "gemini.model"];
+  const aiKeys = ["ai.enabled", "ai.provider", "ai.monthlyLimit", "ai.intakeFallbackThreshold", "deepseek.model", "deepseek.apiKey", "deepseek.baseUrl", "deepseek.timeoutMs"];
   const defaultKeys = [
     "default.rateLimitRps",
     "default.maxConcurrency",
@@ -71,10 +77,21 @@ export function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Toggle
-              label="AI enabled"
+              label="Enable AI intake fallback"
               value={bool(values["ai.enabled"])}
               set={(value) => setValues({ ...values, "ai.enabled": value })}
             />
+            <Field label="Provider"><Input value="DeepSeek" disabled /></Field>
+            <Field label="Model">
+              <Input value={string(values["deepseek.model"])} onChange={(event) => setValues({ ...values, "deepseek.model": event.target.value })} placeholder="deepseek-v4-flash" />
+            </Field>
+            <Field label="API key">
+              <Input type="password" value={string(values["deepseek.apiKey"])} onChange={(event) => setValues({ ...values, "deepseek.apiKey": event.target.value })} placeholder="Enter a replacement key" />
+              <p className="text-xs text-muted-foreground">Configured: {aiHealth.data?.configured ? "Yes" : "No"}. Saved keys remain masked.</p>
+            </Field>
+            <Field label="Base URL">
+              <Input value={string(values["deepseek.baseUrl"])} onChange={(event) => setValues({ ...values, "deepseek.baseUrl": event.target.value })} />
+            </Field>
             <Field label="Monthly AI limit">
               <Input
                 type="number"
@@ -88,14 +105,17 @@ export function SettingsPage() {
                 }
               />
             </Field>
-            <Field label="Gemini model">
+            <Field label="Intake fallback threshold">
               <Input
-                value={string(values["gemini.model"])}
+                type="number" min={0} max={100}
+                value={number(values["ai.intakeFallbackThreshold"], 70)}
                 onChange={(event) =>
-                  setValues({ ...values, "gemini.model": event.target.value })
+                  setValues({ ...values, "ai.intakeFallbackThreshold": Number(event.target.value) })
                 }
               />
             </Field>
+            <Field label="Timeout (ms)"><Input type="number" min={1000} value={number(values["deepseek.timeoutMs"], 30000)} onChange={(event) => setValues({ ...values, "deepseek.timeoutMs": Number(event.target.value) })} /></Field>
+            <p className="text-sm text-muted-foreground">Usage this month: {aiHealth.data?.usedThisMonth ?? 0} / {aiHealth.data?.monthlyLimit ?? number(values["ai.monthlyLimit"], 100)}</p>
             <Button
               disabled={save.isPending}
               onClick={() => save.mutate(aiKeys)}
@@ -103,6 +123,7 @@ export function SettingsPage() {
               <Save />
               Save AI settings
             </Button>
+            <Button variant="outline" disabled={testAi.isPending || !aiHealth.data?.configured} onClick={() => testAi.mutate()}><Send />{testAi.isPending ? "Testing…" : "Test DeepSeek"}</Button>
           </CardContent>
         </Card>
         <Card>

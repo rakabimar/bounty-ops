@@ -112,6 +112,13 @@ import type {
   UrlDto,
   UrlFilters,
   WorkspaceEntityType,
+  AiHealthDto,
+  ProgramIntakePreviewRequest,
+  ProgramIntakePreviewResponse,
+  ProgramIntakeRunDetail,
+  ProgramIntakeStructuredResult,
+  ProgramIntakeSyncApplyInput,
+  ProgramIntakeSyncPreview,
 } from "./api-types";
 
 const DB_KEY = "bountyops.mock.db.v2";
@@ -1095,6 +1102,7 @@ const platformFromApi = (value: ProgramDto["platform"]): Program["platform"] =>
       bugcrowd: "Bugcrowd",
       yeswehack: "YesWeHack",
       custom: "Custom",
+      manual: "Custom",
     }) as const
   )[value];
 const mockProgramDto = (program: Program): ProgramDto => ({
@@ -1708,9 +1716,14 @@ export const coreApi = {
       api.notifications(),
     ]);
     return {
-      "ai.enabled": true,
-      "ai.monthlyLimit": 200,
-      "gemini.model": "gemini-2.5-flash-lite",
+      "ai.enabled": false,
+      "ai.provider": "deepseek",
+      "ai.monthlyLimit": 100,
+      "ai.intakeFallbackThreshold": 70,
+      "deepseek.model": "deepseek-v4-flash",
+      "deepseek.apiKey": "",
+      "deepseek.baseUrl": "https://api.deepseek.com",
+      "deepseek.timeoutMs": 30000,
       "telegram.enabled": true,
       "telegram.botToken": notifications.token,
       "telegram.chatId": notifications.chatId,
@@ -2706,4 +2719,13 @@ export const coreApi = {
           counts: { waiting: 0, active: 0, completed: 0, failed: 0, delayed: 0 },
           timestamp: new Date().toISOString(),
         },
+  getAiHealth: async (): Promise<AiHealthDto> => API_MODE === "http" ? request("/ai/health") : { enabled: false, provider: "deepseek", configured: false, model: "deepseek-v4-flash", baseUrl: "https://api.deepseek.com", monthlyLimit: 100, usedThisMonth: 0, remainingThisMonth: 100 },
+  testDeepSeek: async (): Promise<{ success: boolean; model: string; latencyMs: number; usage?: unknown; error?: string }> => API_MODE === "http" ? request("/ai/test", { method: "POST" }) : { success: false, model: "deepseek-v4-flash", latencyMs: 0, error: "DeepSeek testing is unavailable in mock mode" },
+  previewProgramIntake: async (input: ProgramIntakePreviewRequest): Promise<ProgramIntakePreviewResponse> => API_MODE === "http" ? request("/program-intake/preview", { method: "POST", body: JSON.stringify(input) }) : Promise.reject(new Error("Program intake requires HTTP API mode")),
+  getProgramIntakeRuns: async (filters: { programId?: string; platform?: string; status?: string; limit?: number } = {}): Promise<ProgramIntakeRunDetail[]> => API_MODE === "http" ? request(`/program-intake/runs${qs(filters)}`) : [],
+  getProgramIntakeRun: async (runId: string): Promise<ProgramIntakeRunDetail> => request(`/program-intake/runs/${runId}`),
+  approveProgramIntake: async (runId: string, structuredData: ProgramIntakeStructuredResult): Promise<ProgramDto> => request(`/program-intake/runs/${runId}/approve`, { method: "POST", body: JSON.stringify({ structuredData }) }),
+  rejectProgramIntake: async (runId: string): Promise<ProgramIntakeRunDetail> => request(`/program-intake/runs/${runId}/reject`, { method: "POST" }),
+  previewProgramIntakeSync: async (programId: string, input: { sourceType: "platform_url"; url?: string } | { sourceType: "pasted_text"; text: string }): Promise<ProgramIntakeSyncPreview> => request(`/programs/${programId}/intake/sync-preview`, { method: "POST", body: JSON.stringify(input) }),
+  applyProgramIntakeSync: async (programId: string, input: ProgramIntakeSyncApplyInput): Promise<{ programId: string; intakeRunId: string; diff: ProgramIntakeSyncPreview["diff"] }> => request(`/programs/${programId}/intake/sync-apply`, { method: "POST", body: JSON.stringify(input) }),
 };

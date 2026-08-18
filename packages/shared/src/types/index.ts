@@ -15,7 +15,7 @@ export type AssetStatus =
 
 export type Priority = "P1" | "P2" | "Monitor" | "Low";
 
-export type Platform = "hackerone" | "bugcrowd" | "yeswehack" | "custom";
+export type Platform = "hackerone" | "bugcrowd" | "yeswehack" | "custom" | "manual";
 
 export type ProgramStatus = "active" | "paused" | "archived";
 

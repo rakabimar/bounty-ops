@@ -73,6 +73,12 @@ import type {
   NotificationDeliveryDto,
   NotificationDeliveryStatus,
   NotificationChannel,
+  ProgramIntakePreviewRequest,
+  ProgramIntakePreviewResponse,
+  ProgramIntakeStructuredResult,
+  ProgramIntakeRunDto,
+  ProgramIntakeSyncDiff,
+  AiHealthDto,
 } from "@bountyops/shared";
 
 export type {
@@ -149,7 +155,29 @@ export type {
   NotificationDeliveryDto,
   NotificationDeliveryStatus,
   NotificationChannel,
+  ProgramIntakePreviewRequest,
+  ProgramIntakePreviewResponse,
+  ProgramIntakeStructuredResult,
+  ProgramIntakeRunDto,
+  ProgramIntakeSyncDiff,
+  AiHealthDto,
 };
+
+export interface ProgramIntakeRunDetail extends ProgramIntakeRunDto {
+  proposal: ProgramIntakePreviewResponse["proposal"] | null;
+}
+export interface ProgramIntakeSyncPreview extends ProgramIntakePreviewResponse { diff: ProgramIntakeSyncDiff }
+export interface ProgramIntakeSyncApplyInput {
+  intakeRunId: string;
+  structuredData?: ProgramIntakeStructuredResult;
+  approvedChanges: {
+    confirmScopeRemovals?: boolean;
+    confirmWildcardAdditions?: boolean;
+    confirmPermissionWidening?: boolean;
+    confirmAggressiveEnablement?: boolean;
+    confirmHeaderRemovals?: boolean;
+  };
+}
 
 export interface CreateReconScheduleInput {
   name: string;

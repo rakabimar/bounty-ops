@@ -15,6 +15,9 @@
     "lint": "echo \"No shared lint configuration yet\"",
     "typecheck": "tsc --noEmit"
   },
+  "dependencies": {
+    "zod": "latest"
+  },
   "devDependencies": {
     "typescript": "latest"
   }

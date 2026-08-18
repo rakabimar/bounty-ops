@@ -24,6 +24,7 @@ import type {
 } from "@/lib/api-types";
 import { useSelectedProgram } from "./program-context";
 import { ReconHistoryPanel, SchedulesPanel } from "./core-recon-over-time";
+import { ProgramIntakeDialog, ProgramPolicySyncPanel } from "./core-program-intake";
 import { DataTable } from "./data-table";
 import { Empty, PageHeader, SearchBox } from "./page-kit";
 import { StatusBadge } from "./status-badge";
@@ -142,7 +143,7 @@ export function ProgramsPage() {
         title="Programs"
         description="Manage platform programs, hunting state, scope, and policy metadata."
         actions={
-          <Dialog open={open} onOpenChange={setOpen}>
+          <div className="flex gap-2"><ProgramIntakeDialog /><Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
                 <Plus />
@@ -227,7 +228,7 @@ export function ProgramsPage() {
                 </Button>
               </DialogFooter>
             </DialogContent>
-          </Dialog>
+          </Dialog></div>
         }
       />
       <div className="flex flex-wrap gap-3">
@@ -463,6 +464,7 @@ export function ProgramDetailPage({ id }: { id: string }) {
             "Schedules",
             "History",
             "Notifications",
+            "Policy Sync",
             "Assets",
             "Jobs",
             "URLs",
@@ -524,6 +526,9 @@ export function ProgramDetailPage({ id }: { id: string }) {
         </TabsContent>
         <TabsContent value="notifications">
           <ProgramNotificationPreferences programId={id} />
+        </TabsContent>
+        <TabsContent value="policy sync">
+          <ProgramPolicySyncPanel programId={id} programUrl={program.programUrl} />
         </TabsContent>
         {["assets", "jobs", "urls"].map((tab) => (
           <TabsContent key={tab} value={tab}>
